@@ -1,0 +1,5310 @@
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/README.mac
+#  @(#)README.mac	5.1  01/29/01 CSS
+#
+# Please do not edit the standard CSS macro files.  When spec is
+# updated or reinstalled, all such changes will get clobbered.  If
+# you need to change the standard macros, place the modified
+# macros in one of the following files, as appropriate.
+#
+#      SPECD/site_f.mac        (read only when starting fresh)
+#      SPECD/site.mac          (read each time each user starts)
+#      SPECD/fourc/conf.mac    (or sixc, spec, kappa, etc.)
+#      ./spec.mac              (relative to start up directory)
+#
+# None of these files are created by the spec installation.  They
+# are locally created and maintained files.  Each file, if it exists,
+# is read in the order listed above, after the standard CSS macro
+# files are read.  Macros definitions in the above files will replace any
+# macros of the same name that were read from the standard CSS macro
+# files.
+#
+# If you do need to change a standard macro for your site, please
+# contact CSS so that, if practical, future versions of the standard
+# macros will be redesigned to accommodate your needs.
+#
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/util.mac
+#
+#  @(#)util.mac	5.9  10/27/05 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988-2005
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+#
+# Utility macros
+#
+global  _1 _2 _3 _4 _5 _6 _7 _8 _9  # used to hold arguments in many macros
+global  DATAFILE DOFILE DO_DIR
+
+def u     'unix("$*")'          # Create a subshell
+def ned   'unix("ned $*")'
+def vi    'unix("vi $*")'
+def emacs 'unix("emacs $*")'
+def ed    'unix("ed $*")'
+def cat   'unix("cat $*")'
+def l     'unix("ls -l $*")'
+def ls    'unix("ls $*")'
+def less  'unix("less $*")'
+def more  'unix("more $*")'
+def mail  'unix(sprintf("%s $*",MAIL))'
+def pwd   'print CWD'
+def d     'print date()'        # Print current time and date
+def cd    'chdir("$*")'         # Change current working directory
+def com   'comment "$*"'        # Shorthand for comment
+def p     'print'               # Shorthand for print
+def hi    'history'             # Shorthand for history
+def h     'help'                # Shorthand for help
+def chelp 'help'                # To be consistant with shell command
+def cl    'tty_cntl("cl")'      # Clear the screen
+def beep  'printf("\a")'        # Use \a for alert (beep)
+def formfeed 'printf("\f")'
+def ifp   'if (PRINTER != "" && PRINTER != "/dev/null")'
+def onp   'if (PRINTER != "") { on(PRINTER); };'
+def offp  'if (PRINTER != "") { off(PRINTER); };'
+def ifd   'if (DATAFILE != "" && DATAFILE != "/dev/null")'
+def ond   'if (DATAFILE != "") { on(DATAFILE); };'
+def offd  'if (DATAFILE != "") { off(DATAFILE); };'
+def ont   'on("tty")'
+def offt  'off("tty")'
+def fon  'if ($# == 1) on("$1"); else { eprint "Usage: fon file\n";on()}'
+def foff 'if ($# == 1) off("$1"); else { eprint "Usage: foff file\n";on()}'
+def fclose 'if ($# == 1) close("$1"); else { eprint "Usage: fclose file\n";on()}'
+def waitall     '{
+		   user_waitall; wait(0)
+		   WAITING_MOVE = WAITING_COUNT = WAITING_ACQ = 0
+		}'
+def waitmove    '{ user_waitmove; wait(1); WAITING_MOVE = 0 }'
+def waitcount   '{ user_waitcount; wait(2); WAITING_COUNT = 0 }'
+def waitacq     '{ user_waitacq; wait(4); WAITING_ACQ = 0 }'
+def chk_move    '((WAITING_MOVE = wait(0x21)) || USER_CHK_MOVE)'
+# wyderkat
+def chk_move1    '((WAITING_MOVE = 1) || USER_CHK_MOVE)'
+global CHK_MOVE_ACC 
+def chk_move_fill(x) '{ CHK_MOVE_ACC = 10; }'
+def chk_move10(x) '{ return(CHK_MOVE_ACC--) }'
+
+def chk_count   '((WAITING_COUNT = wait(0x22)) || USER_CHK_COUNT)'
+def chk_acq     '((WAITING_ACQ = wait(0x24)) || USER_CHK_ACQ)'
+def w           '{ waitall; beep }'
+def user_waitall ''
+def user_waitmove ''
+def user_waitcount ''
+def user_waitacq ''
+
+global  WAITING_MOVE            # result of most recent wait(0x21)
+global  WAITING_COUNT           # result of most recent wait(0x22)
+global  WAITING_ACQ             # result of most recent wait(0x24)
+
+global  USER_CHK_MOVE           # Used in chk_move above
+global  USER_CHK_COUNT          # Used in chk_count above
+global  USER_CHK_ACQ            # Used in chk_acq above
+
+# Examine help file, use default if no argument
+def help  '
+	if ($#)
+		gethelp("$1");
+	else {
+		local t
+		for (t="help";;)
+			if (gethelp(t) || (t = input("\nSubject?  ")) == "")
+				break
+	}
+'
+
+# Have output of any command sent to printer
+def prcmd 'fprintf(PRINTER,"\n%s\n","$*");onp;$*
+offp'
+
+# Have output of any command sent to a file
+def savcmd '
+	if ($# != 2) {
+		eprint "Usage:  savcmd command filename"
+		exit
+	}
+	fprintf("$2","\n$1\n");on("$2");$1
+	close("$2")
+'
+
+# Prompts user to set a variable
+def getvar '{
+	$2 = getval("$1", $2)
+}'
+
+# Test if a symbol has been assigned a value, yet
+def unset(x) '{ return(whatis(x)&0x8000000? 1:0) }'
+def is_macro(x) '{ return(whatis(x)&2? 1:0) }'
+
+# Easier way to set debug level ($* is nothing during macro substitution)
+def debug '{
+	local t
+	if ($# == 0) {
+		print "
+Add values together to obtain a debugging level:
+
+    1     0x1  Show input tokens during parsing.
+    2     0x2  Show node execution while running.
+    4     0x4  Show node allocate and free.
+    8     0x8  Show symbol table creation and lookup.
+   16    0x10  Show value get and set.
+   32    0x20  Show misc memory-related info.
+   64    0x40  Show hardware related info.
+  128    0x80  Show more hardware related info.
+  256   0x100  Show macro substitution.
+  512   0x200  Show memory allocate and free.
+ 1024   0x400  Show input after macro expansion.
+ 2048   0x800  Print warning messages.
+ 4096  0x1000  Show certain low level hardware info.
+ 8192  0x2000  Show data array allocation.
+ ...   0x4000  Show signal blocking.
+ ..    0x8000  Show low level hardware info.
+ .    0x10000  Show input file queuing.
+ .    0x20000  Show readable runtime debugging.
+ .    0x40000  Print input context on execution-time errors.
+ .    0x80000  Show sleeps.
+ .   0x100000  Show thread stuff.
+ .   0x200000  Show state changes.
+ .   0x400000  Use hexadecimal for socket debugging output.
+ .   0x800000  Show server/client socket messages."
+		t = input(sprintf("\nDebug value (0x%x)? ", DEBUG))
+	} else
+		t = "$*"
+	if (index(t, "+"))
+		DEBUG |= 0+t
+	else if (index(t, "-"))
+		DEBUG &= ~(0-t)
+	else
+		DEBUG = 0+t
+}'
+
+# edit and re-read configuration file
+
+global  EDCONF_BOX_FLAG
+
+def user_config ''
+def config '
+	wait(-1)
+	user_waitall
+	sync
+	unix(sprintf("%s/edconf %s %s %s/%s",\
+	  SPECD, set_sim(-1)? "-s":"", EDCONF_BOX_FLAG? "-b":"", SPECD, SPEC))
+	reconfig
+	user_config
+	_assign
+	_assign_mono
+'
+
+##  wizard macros more-or-less from ESRF
+# With no args, onwiz activates wizard mode for 10 minutes.
+# With a positive arg, timer is set for arg seconds.
+# With a negative arg, wizard mode stays on.
+# With arg=0, can use in a macro for wiz mode for duration of macro.
+# It will be turned off on first instance of prompt_mac.
+# If wiz mode already active, an arg can change the timer.
+def onwiz '{
+    local is_on; is_on = spec_par("specwiz")
+
+    if ((!is_on || $1) && (is_on || spec_par("specwiz",1))) {
+	local timeout; timeout = $#? $1:600
+	if (timeout >= 0) {
+	    global WIZ_TIME; WIZ_TIME = time() + timeout
+	    cdef("prompt_mac",\
+	    \'if (time()>WIZ_TIME) {cdef("","","onwiz","delete");offwiz}\n\',\
+		"onwiz")
+	} else
+	    cdef("", "", "onwiz", "delete")
+    }
+}'
+
+#  Deactivates wizard mode.
+def offwiz 'spec_par("specwiz",0);unglobal WIZ_TIME'
+
+
+global  MAIL
+if (MAIL == "")
+	MAIL="mail"
+
+global  ADMIN
+if (ADMIN == "")
+	ADMIN="specadm"
+
+# mail a bug report to the administrator
+def bug '
+	printf("The mail utility will be run for you.  Describe your\n")
+	printf("problem to the administrator.  When you are done, type ^D.\n")
+	{
+	local s
+	s = unix(sprintf("%s -s \"Bug from %s\" %s", MAIL, USER, ADMIN))
+	printf("Bug report %ssent to %s.\n", s? "not ":"", ADMIN)
+	}
+'
+
+# A macro function for comments can be more efficient
+def fcom(s) '{
+	local f
+
+	f = sprintf("%s.  %s.\n", date(), s)
+	printf("\n%s", f)
+	if (PRINTER != "" && PRINTER != "/dev/null")
+		fprintf(PRINTER, "\n%s", f)
+	if (DATAFILE != "" && DATAFILE != "/dev/null")
+		fprintf(DATAFILE, "#C %s", f)
+}'
+# As above, but doesn't write to screen
+def fcom_quiet(s) '{
+	local f
+
+	f = sprintf("%s.  %s.\n", date(), s)
+	if (PRINTER != "" && PRINTER != "/dev/null")
+		fprintf(PRINTER, "\n%s", f)
+	if (DATAFILE != "" && DATAFILE != "/dev/null")
+		fprintf(DATAFILE, "#C %s", f)
+}'
+
+# Print a comment on the screen, printer, and data file
+def comment '
+	printf("\n%s.  $1.\n", date(), $2)
+	qcomment "$1" "$2"
+'
+# Print a comment on the printer and data file
+def qcomment '
+	if (PRINTER != "")
+		fprintf(PRINTER,"\n%s.  $1.\n", date(), $2)
+	if (DATAFILE != "")
+		fprintf(DATAFILE,"#C %s.  $1.\n", date(), $2)
+	#
+'
+# Set something and comment if it has changed.
+def gpset '{
+	if ($1 != $2) {
+		fcom_quiet(sprintf("$2 reset from %g to %g",$2,$1))
+		$2 = $1
+	}
+	#
+}'
+cdef("user_onsim")
+cdef("user_offsim")
+
+# Turn simulate mode on
+def onsim '{
+	local   t
+
+	if (!(t = set_sim(1))) { qcomment "Simulate mode ON" }
+	user_onsim
+	printf("Simulate was %s, is now %s.\n", t? "on":"off",\
+				       set_sim(-1)? "ON":"OFF")
+}'
+# Turn simulate mode off
+def offsim '{
+	local   t
+
+	if (t = set_sim(0)) { qcomment "Simulate mode OFF" }
+	printf("Simulate was %s, is now %s.\n", t? "on":"off",\
+				       set_sim(-1)? "ON":"OFF")
+	user_offsim
+}'
+# "do" a command file
+def do  '_do do $*'
+# quietly "do" a command file
+def qdo '_do qdo $*'
+# run a command file
+def _do '{
+	local narg, cmd, file, label
+
+	label = 0
+	narg = sscanf("$*", "%s %s %[^\n]", cmd, file, label)
+
+	if (narg < 2  || cmd != "do" && cmd != "qdo") {
+		eprint "Usage:  do file [ line | label ]"
+		eprint "       qdo file [ line | label ]"
+		exit
+	}
+
+	if (file == "." && DOFILE == "") {
+		eprint "No previous \"do\" file."
+		exit
+	}
+	if (file != ".") {
+		DOFILE = file
+		if (DO_DIR != "." && !file_info(DOFILE, "-r")) {
+			local t
+			if (file_info(t = DO_DIR "/" DOFILE, "-r"))
+				DOFILE = t
+		}
+	}
+	if (file_info(DOFILE, "-r")) {
+		qcomment "do %s" DOFILE
+		if (cmd == "do")
+			dofile(DOFILE, label)
+		else
+			qdofile(DOFILE, label)
+	} else {
+		eprintf("Can\'t read command file \"%s\".\n", DOFILE)
+		exit
+	}
+}'
+# Reread standard macro files
+def newmac '{
+	local t
+
+	if (file_info(t = SPECD "/site.mac", "-f")) {
+		qcomment "do %s" t
+		qdofile(t)
+	}
+	if (file_info(t = SPECD "/site_f.mac", "-f")) {
+		qcomment "do %s" t
+		qdofile(t)
+	}
+	if (file_info(t = sprintf("%s/%s/%.4s.mac", SPECD,SPEC,SPEC), "-f")) {
+		qcomment "do %s" t
+		qdofile(t)
+	}
+	t = sprintf("%s/%.4s.mac", SPECD, SPEC)
+	qcomment "do %s" t
+	qdofile(t)
+	t = SPECD "/standard.mac"
+	qcomment "do %s" t
+	qdofile(t)
+}'
+# Save a macro definition to a file
+def savmac '
+	if ($# != 2) {
+		eprint "Usage:  savmac macro_name filename"
+		exit
+	} 
+	on("$2"); offt
+	prdef $1
+	ont; close("$2")
+'
+# Try to figure out what kind of thing a symbol is
+def whats '
+	if ($# != 1) {
+		eprint "Usage:  whats whatever"
+		exit
+	}
+	print whatis(\'$1\', 1)
+'
+# Sleep for a while, displaying the time left
+def do_sleep '{
+	local i, j
+	if ((i=j=$1) > 2) {
+		for (;i>= 1; i -= 1) {
+			printf("\rSleeping %d",i)
+			tty_cntl("ce")
+			printf("\r")
+			sleep(1)
+		}
+		if (i > 0)
+			sleep(i)
+		if (j > 2) {
+			tty_cntl("ce")
+			printf("\r")
+		}
+	} else
+		sleep($1)
+
+}'
+# Save current globals to a save file
+def save '{
+	local f
+
+	if ($# == 0)
+		f = getsval("File for saving globals", "saved")
+	else if ($# == 1)
+		f = "$1"
+	else {
+		eprint "Usage:  save [filename]"
+		exit
+	}
+	if (file_info(f, "-s"))
+		unix(sprintf("mv %s %s.bak", f, f))
+	on(f); offt
+	printf("PRINTER=\"%s\"\n",PRINTER)
+	savegeo
+	saveusr
+	ont; close(f)
+	qcomment "Globals saved in \"%s\"" "f"
+	printf("Type \"do %s\" to recover.\n", f)
+}'
+# redefined by user to save what user wants to save
+def saveusr ''
+
+#########################################################################
+#
+# Send out initialization strings to selected devices
+#
+# Digital Decwriter printer, put into compressed mode
+def initdw 'fprintf(PRINTER,"\033[4w")'
+
+# Epson FX printer, put into compressed mode
+def initfx 'fprintf(PRINTER,"\017")'
+
+# Okidata printer, put into compressed mode
+def initoki 'fprintf(PRINTER,"\035")'
+
+# NEC P6/P7 printer, put into compressed mode
+def initnec 'fprintf(PRINTER,"\033!\004")'
+
+# HP QuietJet printer, put into compressed mode
+# (set switch `A4' for 11" or 12" paper)
+def inithp 'fprintf(PRINTER,"\033&k2S\033(s0Q\033&k3G")'
+
+
+# If we have a modern version of less installed, use it for help
+# file pager.  Not sure where the version cutoff is, but 332 seems
+# to be safe.  The long prompt string is actually the default, except
+# for the %s at the beginning of the -PM option, which spec uses to
+# insert the name of the help file being displayed.
+#
+# -~ suppresses tildes on releases >= 335
+# -w suppresses tildes on blank lines in pre-335 release
+# -w highlights first line after scroll in release >= 335
+
+if (unset("PAGER") || PAGER == "") {
+  local s, v
+
+  unix("less -V 2>&1", s)
+  if (sscanf(s, "%*[ a-zA-Z]%d", v) == 1 && v >= 332) {
+     if (v > 337)
+	PAGER="less -~ -X -e -c -mM -PM'%s ..?ltline %%lt?L/%%L. \
+:byte %%bB?s/%%s. .?e(END) :?pB%%pB\%%..%%t$'"
+     else
+	PAGER="less -w -X -e -c -mM -PM'%s ..?ltline %%lt?L/%%L. \
+:byte %%bB?s/%%s. .?e(END) :?pB%%pB\%%..%%t$'"
+  }
+}
+
+# If you are using macros from 4.05.x or beyond with an older spec
+# version, make the following definitions:
+#  rdef eprint 'print'
+#  rdef eprintf 'printf'
+
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/scans.mac
+#
+#  @(#)scans.mac	5.2  03/02/04 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988,1989,1990,1991,1992,1993,1997,1998,1999,2004
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+#########################################################################
+#
+#                        BASIC SCANS
+#
+#########################################################################
+#
+# `ascan' is a single-motor scan
+#
+def ascan '
+	if ($# != 5) {
+		eprint "Usage:  ascan  motor start finish  intervals time"
+		exit
+	} 
+	_check0 "$1"
+	_m[0] = $1; _s[0] = $2; _f[0] = $3
+	_n1 = int($4); _ctime = $5
+	_nm = 1
+	_ascan
+'
+#########################################################################
+#
+# `a2scan' is a two-motor scan
+#
+def a2scan '
+	if ($# != 8) {
+		eprint "\
+Usage:  a2scan  motor1 s1 f1  motor2 s2 f2  intervals time"
+		exit
+	} 
+	_check0 "$1"; _check0 "$4"
+	_m[0] = $1; _s[0] = $2; _f[0] = $3
+	_m[1] = $4; _s[1] = $5; _f[1] = $6
+	_n1 = int($7); _ctime = $8
+	_nm = 2
+	_ascan
+'
+#########################################################################
+#
+# `a3scan' is a three-motor scan
+#
+def a3scan '
+	if ($# != 11) {
+		eprint "\
+Usage:  a3scan  motor1 s1 f1  motor2 s2 f2  motor3 s3 f3  intervals time"
+		exit
+	} 
+	_check0 "$1"; _check0 "$4"; _check0 "$7"
+	_m[0] = $1; _s[0] = $2; _f[0] = $3
+	_m[1] = $4; _s[1] = $5; _f[1] = $6
+	_m[2] = $7; _s[2] = $8; _f[2] = $9
+	_n1 = int($10); _ctime = $11
+	_nm = 3
+	_ascan
+'
+#########################################################################
+#
+# `a4scan' is a four-motor scan
+#
+def a4scan '
+	if ($# != 14) {
+		eprint "\
+Usage:  a4scan  m1 s1 f1  m2 s2 f2  m3 s3 f3  m4 s4 f4  intervals time"
+		exit
+	} 
+	_check0 "$1"; _check0 "$4"; _check0 "$7"; _check0 "$10"
+	_m[0] = $1; _s[0] = $2; _f[0] = $3
+	_m[1] = $4; _s[1] = $5; _f[1] = $6
+	_m[2] = $7; _s[2] = $8; _f[2] = $9
+	_m[3] = $10; _s[3] = $11; _f[3] = $12
+	_n1 = int($13); _ctime = $14
+	_nm = 4
+	_ascan
+'
+#########################################################################
+#
+# `a5scan' is a five-motor scan
+#
+def a5scan '
+	if ($# != 17) {
+		eprint "\
+Usage:  a5scan  m1 s1 f1 m2 s2 f2 m3 s3 f3 m4 s4 f4 m5 s5 f5  intervals time"
+		exit
+	} 
+	_check0 "$1"; _check0 "$4"; _check0 "$7"; _check0 "$10"; _check0 "$13"
+	_m[0] = $1; _s[0] = $2; _f[0] = $3
+	_m[1] = $4; _s[1] = $5; _f[1] = $6
+	_m[2] = $7; _s[2] = $8; _f[2] = $9
+	_m[3] = $10; _s[3] = $11; _f[3] = $12
+	_m[4] = $13; _s[4] = $14; _f[4] = $15
+	_n1 = int($16); _ctime = $17
+	_nm = 5
+	_ascan
+'
+#########################################################################
+#
+# `mesh' is a two-motor nested scan
+#
+def mesh '
+	if ($# != 9) {
+		eprint "\
+Usage:  mesh  mot1 s1 f1 intervals1  mot2 s2 f2 intervals2  time"
+		exit
+	} 
+	_check0 "$1"; _check0 "$5"
+	{
+		_m[0] = $1; _s1 = $2; _f1 = $3; _n1 = int($4)
+		_m[1] = $5; _s2 = $6; _f2 = $7; _n2 = int($8)
+		_ctime = $9
+	}
+	if (_n1 <= 0 || _n2 <= 0) {
+		eprint "Intervals <= 0"
+		exit
+	} 
+
+	_bad_lim = 0
+	_chk_lim _m[0] _s1
+	_chk_lim _m[0] _f1
+	_chk_lim _m[1] _s2
+	_chk_lim _m[1] _f2
+	if (_bad_lim) exit
+
+	HEADING = sprintf("mesh  $1 %g %g %g  $5 %g %g %g  %g",\
+			$2, $3, $4, $6, $7, $8, $9)
+
+	_d1 = (_f1 - _s1) / _n1++; _d2 = (_f2 - _s2) / _n2++
+	_nm=2
+	_cols=2+_hkl_col
+	X_L = "$1"; _sx = _s1; _fx = _f1
+	Y_L = cnt_name(DET)
+	_stype = 1|8|(2<<8)
+	FPRNT=sprintf("%s  %s  ",motor_name(_m[0]),motor_name(_m[1]))
+	PPRNT=sprintf("%8.8s %8.8s ",motor_name(_m[0]),motor_name(_m[1]))
+	VPRNT=sprintf("%9.9s %9.9s ",motor_name(_m[0]),motor_name(_m[1]))
+	FPRNT=sprintf("%s%s  ",FPRNT,_hkl_sym1)
+	scan_head
+	PFMT=sprintf("%%8.%df %%8.%df ",UP,UP)
+	VFMT=sprintf("%%9.%df %%9.%df ",UP,UP)
+	_g1 = _n1
+	_g2 = 0
+	def _scan_on \'
+	 for (; _g2 < _n2; _g2++){
+		A[_m[1]] = _s2 + _g2 * _d2
+		if (_g1 == _n1)
+			_g1 = 0
+		for (; _g1 < _n1; _g1++, NPTS++) {
+			A[_m[0]] = _s1 + _g1 * _d1
+			scan_move
+			FPRNT=sprintf("%.8g %.8g ",A[_m[0]],A[_m[1]])
+			PPRNT=sprintf(PFMT,A[_m[0]],A[_m[1]])
+			VPRNT=sprintf(VFMT,A[_m[0]],A[_m[1]])
+			FPRNT=sprintf("%s%s ",FPRNT,_hkl_val)
+			scan_loop
+			scan_data(_g1,A[_m[0]])
+			scan_plot
+		}
+	 }
+	 scan_tail
+	\'
+	_scan_on
+'
+
+#########################################################################
+#
+# `hklscan' is a general linear reciprocal space scan
+# (Limit checking is done at the last point first, since limits
+# are often exceeded at the extreme points of a scan.)
+def hklscan '
+	if ($# != 8) {
+		eprint "\
+Usage:  hklscan Hstart Hfinish Kstart Kfinish Lstart Lfinish intervals time"
+		exit
+	} 
+	{
+		_s1 = $1; _f1 = $2; _s2 = $3; _f2 = $4; _s3 = $5; _f3 = $6
+		_n1 = int($7); _ctime = $8
+	}
+
+	if (_n1 <= 0) {
+		eprint "Intervals <= 0"
+		exit
+	} 
+	HEADING = sprintf("hklscan  %g %g  %g %g  %g %g  %g %g", $1,$2,$3,\
+		$4,$5,$6,$7,$8)
+	_d1 = (_f1 - _s1)/_n1
+	_d2 = (_f2 - _s2)/_n1
+	_d3 = (_f3 - _s3)/_n1++
+
+	H=_f1; K=_f2; L=_f3
+	calcA; _bad_lim=0; _hkl_lim
+	if (_bad_lim) {
+		eprintf("(H K L = %g %g %g)\n",H,K,L)
+		exit
+	}
+	if (_pre_chk) {
+		local i
+		for (i=0;i<_n1;i++) {
+			H = _s1 + i*_d1
+			K = _s2 + i*_d2
+			L = _s3 + i*_d3
+			calcA
+			_bad_lim = 0
+			_hkl_lim
+			if (_bad_lim) {
+				eprintf("(H K L = %g %g %g)\n",H,K,L)
+				exit
+			}
+		}
+	}
+	_cols=3
+	if (_sav_geo_mot)
+		_cols += _numgeo
+	if (_d3)
+		{ X_L = "L"; _sx = _s3; _fx = _f3 }
+	else if (_d2)
+		{ X_L = "K"; _sx = _s2; _fx = _f2 }
+	else
+		{ X_L = "H"; _sx = _s1; _fx = _f1 }
+	Y_L = cnt_name(DET)
+	_stype = 2
+	FPRNT="H  K  L  "
+	PPRNT=""
+	{
+	 local i, s
+	 for (i=0;i<_numgeo;i++) {
+		s = motor_name(mA[i])
+		PPRNT = PPRNT sprintf("%8.8s ",s)
+		if (_sav_geo_mot)
+			FPRNT = FPRNT s "  "
+	 }
+	}
+	VPRNT=sprintf("%10s %10s %10s ","H","K","L")
+	scan_head
+	def _scan_on \'
+	 for (; NPTS < _n1; NPTS++) {
+		local i h_ca k_ca l_ca
+		H = h_ca = _s1 + NPTS*_d1
+		K = k_ca = _s2 + NPTS*_d2
+		L = l_ca = _s3 + NPTS*_d3
+		get_angles; calcA
+		scan_move
+		FPRNT=sprintf("%g %g %g ",h_ca,k_ca,l_ca)
+		PPRNT=""
+		for (i=0;i<_numgeo;i++) {
+			PPRNT = PPRNT sprintf("%8.4f ",A[mA[i]])
+			if (_sav_geo_mot)
+				FPRNT = FPRNT sprintf("%.8g ",A[mA[i]])
+		}
+		VPRNT=sprintf("%10.5g %10.5g %10.5g ",h_ca,k_ca,l_ca)
+		scan_loop
+		scan_data(NPTS,_d3? l_ca:(_d2? k_ca:h_ca))
+		H=h_ca; K=k_ca; L=l_ca
+		scan_plot
+	 }
+	 scan_tail
+	\'
+	_scan_on
+'
+#########################################################################
+#
+# `hklmesh' is a two-Q nested scan.  It uses the fact that H, K and L
+# are defined as Q[0], Q[1] and Q[2], respectively.
+#
+def hklmesh '
+	_m1 = index("HKL", "$1")
+	_m2 = index("HKL", "$5")
+	if ($# != 9 || !_m1 || !_m2 || _m1 == _m2) {
+		eprint "\
+Usage:  hklmesh  Q1 s1 f1 intervals1  Q2 s2 f2 intervals2  time\n\
+	Q1 and Q2 are H, K or L.  Q1 != Q2"
+		exit
+	}
+	waitall; get_angles; calcHKL
+	{
+		_m1--; _s1 = $2; _f1 = $3; _n1 = int($4)
+		_m2--; _s2 = $6; _f2 = $7; _n2 = int($8)
+		_ctime = $9
+	}
+	if (_n1 <= 0 || _n2 <= 0) {
+		eprint "Intervals <= 0"
+		exit
+	}
+
+	HEADING = sprintf("hklmesh  $1 %g %g %g  $5 %g %g %g  %g",\
+			$2,$3,$4,$6,$7,$8,$9)
+
+	_d1 = (_f1 - _s1) / _n1++; _d2 = (_f2 - _s2) / _n2++
+	if (_pre_chk) {
+		local i j
+		for (i=0; i<_n2; i++) {
+			Q[_m2] = _s2 + i * _d2
+			for (j=0; j<_n1; j++) {
+				Q[_m1] = _s1 + j * _d1
+				calcA
+				_bad_lim = 0
+				_hkl_lim
+				if (_bad_lim) {
+					eprintf("(H K L = %g %g %g)\n", H,K,L)
+					exit
+				}
+				calcHKL
+			}
+		}
+	}
+	_cols=3
+	if (_sav_geo_mot)
+		_cols += _numgeo
+	X_L = "$1"; _sx = _s1; _fx = _f1
+	Y_L = cnt_name(DET)
+	_stype=2|8
+	FPRNT="H  K  L  "
+	PPRNT=""
+	{
+	 local i, s
+	 for (i=0;i<_numgeo;i++) {
+		s = motor_name(mA[i])
+		PPRNT = PPRNT sprintf("%8.8s ",s)
+		if (_sav_geo_mot)
+			FPRNT = FPRNT s "  "
+	 }
+	}
+	VPRNT=sprintf("%10s %10s %10s ","H","K","L")
+	scan_head
+	_hklmesh
+'
+# Long macro definition requires 2 parts
+#  save Q[_m3] at start of mesh and restore at each point to prevent drift
+def _hklmesh '
+	_m3 = 3 - _m1 - _m2
+	_g1 = _n1
+	_g2 = 0
+	def _scan_on \'
+	 {
+	  local _ca
+	  _ca[_m3] = Q[_m3]
+	  for (; _g2 < _n2; _g2++){
+		Q[_m2] = _ca[_m2] = _s2 + _g2 * _d2
+		if (_g1 == _n1)
+			_g1 = 0
+		for (; _g1 < _n1; _g1++, NPTS++) {
+			local i
+			Q[_m1] = _ca[_m1] = _s1 + _g1 * _d1
+			Q[_m3] = _ca[_m3]
+			get_angles; calcA
+			scan_move
+			FPRNT=sprintf("%g %g %g ", _ca[0],_ca[1],_ca[2])
+			PPRNT=""
+			for (i=0;i<_numgeo;i++) {
+				PPRNT = PPRNT sprintf("%8.4f ",A[mA[i]])
+				if (_sav_geo_mot)
+					FPRNT = FPRNT sprintf("%.8g ",A[mA[i]])
+			}
+			VPRNT=sprintf("%10.5g %10.5g %10.5g ",\
+							_ca[0],_ca[1],_ca[2])
+			scan_loop
+			scan_data(_g1,_ca[_m1])
+			scan_plot
+		}
+	  }
+	 }
+	 scan_tail
+	\'
+	_scan_on
+'
+
+
+#########################################################################
+#
+# `hkcircle', `hlcircle', `klcircle', `hkradial', `hlradial', `klradial'
+#  (with `_hklline') do circle and radial cuts in HKL space
+#
+# Circular scan in the H-K plane
+def hkcircle '
+	if ($# < 5) {
+		eprint "\
+Usage:  hkcircle radius angle_start angle_finish intervals time [L=expr]\n\
+	(i.e. L=H/300, ...)"
+		exit
+	} 
+	#
+	def _hkl "
+		H = _const * sin(rad(\$1))
+		K = _const * cos(rad(\$1))
+	"
+	X_L = "Angle"
+	HEADING = sprintf("hkcircle %g %g %g %g %g %s", $1,$2,$3,$4,$5,"$6")
+	_hklline $1 $2 $3 $4 $5 "$6"
+'
+# Circular scan in the H-L plane
+def hlcircle '
+	if ($# < 5) {
+		eprint "\
+Usage:  hlcircle radius angle_start angle_finish intervals time [K=expr]\n\
+	(i.e. K=L/300, ...)"
+		exit
+	} 
+	#
+	def _hkl "
+		H = _const * sin(rad(\$1))
+		L = _const * cos(rad(\$1))
+	"
+	X_L = "Angle"
+	HEADING = sprintf("hlcircle %g %g %g %g %g %s", $1,$2,$3,$4,$5,"$6")
+	_hklline $1 $2 $3 $4 $5 "$6"
+'
+# Circular scan in the K-L plane
+def klcircle '
+	if ($# < 5) {
+		eprint "\
+Usage:  klcircle radius angle_start angle_finish intervals time [H=expr]\n\
+	(i.e. H=L/300, ...)"
+		exit
+	} 
+	#
+	def _hkl "
+		K = _const * sin(rad(\$1))
+		L = _const * cos(rad(\$1))
+	"
+	X_L = "Angle"
+	HEADING = sprintf("klcircle %g %g %g %g %g %s", $1,$2,$3,$4,$5,"$6")
+	_hklline $1 $2 $3 $4 $5 "$6"
+'
+# Radial scan in the H-K plane
+def hkradial '
+	if ($# < 5) {
+		eprint "\
+Usage:  hkradial angle start finish intervals time [L=expression]\n\
+	(i.e.  L=H/300, ...)"
+		exit
+	} 
+	#
+	def _hkl "
+		H = \$1 * sin(rad(_const))
+		K = \$1 * cos(rad(_const))
+	"
+	X_L = "Radius"
+	HEADING = sprintf("hkradial %g %g %g %g %g %s", $1,$2,$3,$4,$5,"$6")
+	_hklline $1 $2 $3 $4 $5 "$6"
+'
+# Radial scan in the H-L plane
+def hlradial'
+	if ($# < 5) {
+		eprint "\
+Usage:  hlradial angle start finish intervals time [K=expression]\n\
+	(i.e. K=L/300, ...)"
+		exit
+	} 
+	#
+	def _hkl "
+		H = \$1 * sin(rad(_const))
+		L = \$1 * cos(rad(_const))
+	"
+	X_L = "Radius"
+	HEADING = sprintf("hlradial %g %g %g %g %g %s", $1,$2,$3,$4,$5,"$6")
+	_hklline $1 $2 $3 $4 $5 "$6"
+'
+# Radial scan in the K-L plane
+def klradial '
+	if ($# < 5) {
+		print "\
+Usage:  klradial angle start finish intervals time [H=expression]\n\
+	(i.e. H=L/300, ...)"
+		exit
+	} 
+	#
+	def _hkl "
+		K = \$1 * sin(rad(_const))
+		L = \$1 * cos(rad(_const))
+	"
+	X_L = "Radius"
+	HEADING = sprintf("klradial %g %g %g %g %g %s", $1,$2,$3,$4,$5,"$6")
+	_hklline $1 $2 $3 $4 $5 "$6"
+'
+def _hklline '
+	{_const = $1; _s1 = $2; _f1 = $3; _n1 = int($4); _ctime = $5}
+
+	if (_n1 <= 0) {
+		eprint "Intervals <= 0"
+		exit
+	} 
+
+	_d1 = (_f1 - _s1) / _n1++
+	_cols=4
+	if (_sav_geo_mot)
+		_cols += _numgeo
+	_sx = _s1; _fx = _f1
+	Y_L = cnt_name(DET)
+	_stype = 2
+	FPRNT=sprintf("%s  H  K  L  ",X_L)
+	PPRNT=""
+	{
+	 local i, s
+	 for (i=0;i<_numgeo;i++) {
+		s = motor_name(mA[i])
+		PPRNT = PPRNT sprintf("%8.8s ",s)
+		if (_sav_geo_mot)
+			FPRNT = FPRNT s "  "
+	 }
+	}
+	VPRNT=sprintf("%10s %10s %10s ","H","K","L")
+
+	{
+		local x
+		x = _f1
+		_hkl x
+		if ("$6" != "0")
+			$6
+		calcA
+		_bad_lim = 0
+		_hkl_lim
+		if (_bad_lim) {
+			eprintf("(H K L = %g %g %g)\n", H, K, L)
+			exit
+		}
+	}
+	if (_pre_chk) for (i=0; i<_n1; i++) {
+		local x
+		x = _s1 + i * _d1
+		_hkl x
+		if ("$6" != "0")
+			$6
+		calcA
+		_bad_lim = 0
+		_hkl_lim
+		if (_bad_lim) {
+			eprintf("(H K L = %g %g %g)\n", H, K, L)
+			exit
+		}
+	}
+
+	scan_head
+	def _scan_on \'
+	 for (; NPTS < _n1; NPTS++) {
+		local i x h_ca k_ca l_ca
+		_x = _s1 + NPTS * _d1
+		_hkl _x
+		if ("$6" != "0")
+			$6
+		h_ca = H; k_ca = K; l_ca = L
+		get_angles; calcA
+		scan_move
+		FPRNT=sprintf("%g %g %g %g ",_x,h_ca,k_ca,l_ca)
+		PPRNT=""
+		for (i=0;i<_numgeo;i++) {
+			PPRNT = PPRNT sprintf("%8.4f ",A[mA[i]])
+			if (_sav_geo_mot)
+				FPRNT = FPRNT sprintf("%.8g ",A[mA[i]])
+		}
+		VPRNT=sprintf("%10.5g %10.5g %10.5g ",h_ca,k_ca,l_ca)
+		scan_loop
+		scan_data(NPTS,_x)
+		H = h_ca; K = k_ca; L = l_ca
+		scan_plot
+	 }
+	 scan_tail
+	\'
+	_scan_on
+'
+#########################################################################
+#
+# `tscan' is a temperature scan.  "scan_move" is included in loop for
+#  powder mode to rock motors during a tscan.
+#
+def tscan '
+	if ($# < 4) {
+		eprint "Usage:  tscan start finish intervals time [sleep]"
+		exit
+	} 
+	{ _s1 = $1; _f1 = $2; _n1 = int($3); _ctime = $4; _stime = $5; }
+
+	if (_n1 <= 0) {
+		eprint "Intervals <= 0"
+		exit
+	} 
+
+	HEADING = sprintf("tscan %g %g %g %g %g", $1, $2, $3, $4, $5)
+	_d1 = (_f1 - _s1) / _n1++
+	_cols=1
+	_sx = _s1; _fx = _f1
+	X_L = "Measured"
+	Y_L = cnt_name(DET)
+	_stype = 4
+	FPRNT="Setpoint  "
+	PPRNT=sprintf("%9.9s ", "Setpoint")
+	VPRNT=sprintf("%9.9s %9.9s ", "Setpoint", "DegC")
+	scan_head
+	def _scan_on \'
+	 for (; NPTS < _n1; NPTS++) {
+		settemp _s1+NPTS*_d1
+		do_sleep _stime
+		scan_move
+		FPRNT=sprintf("%g ",TEMP_SP)
+		PPRNT=sprintf("%9.4g ",TEMP_SP)
+		VPRNT=sprintf("%9.4f %9.4f ",TEMP_SP,DEGC_SP)
+		scan_loop
+		scan_data(NPTS, DEGC)
+		scan_plot
+	 }
+	 scan_tail
+	\'
+	_scan_on
+'
+
+#########################################################################
+#
+# The following scans are defined in terms of the more basic scans
+# above.
+#
+
+# The cleanup macro for delta scans returns the motor(s) to the
+# starting position(s).
+
+def dscan_cleanup '{
+	local   i, m[], n, mne
+
+	n = split("$*", m)
+
+	# following kludge until we get an eval() function
+	if (n >= 2)  m[1] = $2
+	if (n >= 4)  m[3] = $4
+	if (n >= 6)  m[5] = $6
+	if (n >= 8)  m[7] = $8
+	if (n >= 10) m[9] = $10
+
+	printf("\n")
+	ifp {
+		fprintf(PRINTER, "\n")
+	}
+	waitmove
+	get_angles
+	for (i = 0; i < n; i += 2) {
+		mne = motor_mne(motor_num(m[i]))
+		printf("Returning %s to %g\n", mne, m[i+1])
+		ifp {
+			fprintf(PRINTER,"mv %s %g\n", mne, m[i+1])
+		}
+		A[motor_num(m[i])] = m[i+1]
+	}
+	_move
+	printf("\n")
+}'
+
+# delta angle scan (ascan relative to current position)
+def lup '
+	if ($# != 5) {
+		eprint "Usage:  lup motor start finish intervals time"
+		exit
+	} 
+	dscan $*
+'
+def dscan '
+	if ($# != 5) {
+		eprint "Usage:  dscan motor start finish intervals time"
+		exit
+	} 
+	_check0 "$1"
+	waitall
+	get_angles
+	_c1=A[$1]
+
+	cdef("cleanup_once", sprintf("dscan_cleanup $1 %s;", _c1), "dscan")
+
+	ascan $1 _c1+($2) _c1+($3) $4 $5
+
+	cdef("cleanup_once", "", "dscan", "delete")
+	dscan_cleanup $1 _c1
+'
+# Two motor dscan
+def d2scan '
+	if ($# != 8) {
+		eprint "\
+Usage:  d2scan  motor1 start1 finish1  motor2 start2 finish2  intervals time"
+		exit
+	} 
+	_check0 "$1" ; _check0 "$4"
+	waitall
+	get_angles
+	_c1=A[$1]
+	_c2=A[$4]
+
+	cdef("cleanup_once",\
+		    sprintf("dscan_cleanup $1 %s $4 %s;", _c1, _c2), "dscan")
+
+	a2scan $1 _c1+($2) _c1+($3) $4 _c2+($5) _c2+($6) $7 $8
+
+	cdef("cleanup_once", "", "dscan", "delete")
+	dscan_cleanup $1 _c1 $4 _c2
+'
+# Three motor dscan
+def d3scan '
+	if ($# != 11) {
+		eprint "\
+Usage:  d3scan  motor1 start1 finish1  m2 s2 f2  m3 s3 f3  intervals time"
+		exit
+	} 
+	_check0 "$1" ; _check0 "$4" ; _check0 "$7"
+	waitall
+	get_angles
+	_c1=A[$1]
+	_c2=A[$4]
+	_c3=A[$7]
+
+	cdef("cleanup_once",\
+	   sprintf("dscan_cleanup $1 %s $4 %s $7 %s;", _c1,_c2,_c3), "dscan")
+
+	a3scan $1 _c1+($2) _c1+($3) $4 _c2+($5) _c2+($6) \
+				       $7 _c3+($8) _c3+($9) $10 $11
+
+	cdef("cleanup_once", "", "dscan", "delete")
+	dscan_cleanup $1 _c1 $4 _c2 $7 _c3
+'
+# Four motor dscan
+def d4scan '
+	if ($# != 14) {
+		eprint "\
+Usage:  d4scan  m1 s1 f1  m2 s2 f2  m3 s3 f3  m4 s4 f4  intervals time"
+		exit
+	} 
+	_check0 "$1" ; _check0 "$4" ; _check0 "$7" ; _check0 "$10"
+	waitall
+	get_angles
+	_c1=A[$1]
+	_c2=A[$4]
+	_c3=A[$7]
+	_c4=A[$10]
+
+	cdef("cleanup_once",\
+	 sprintf("dscan_cleanup $1 %s $4 %s $7 %s $10 %s;", _c1,_c2,_c3,_c4),\
+	   "dscan")
+
+	a4scan $1 _c1+($2) _c1+($3) $4 _c2+($5) _c2+($6) \
+		      "$7" _c3+($8) _c3+($9) "$10" _c4+($11) _c4+($12) $13 $14
+
+	cdef("cleanup_once", "", "dscan", "delete")
+	dscan_cleanup $1 _c1 $4 _c2 $7 _c3 $10 _c4
+'
+def th2th '
+	if ($# != 4) {
+	    eprint "Usage:  th2th tth_start_rel tth_finish_rel intervals time"
+	    exit
+	} 
+	d2scan tth $1 $2 th ($1)/2 ($2)/2 $3 $4
+'
+# H scan
+def hscan '
+	if ($# != 4) {
+		eprint "Usage:  hscan start finish intervals time"
+		exit
+	} 
+	waitall; get_angles; calcHKL
+	hklscan $1 $2 K K L L $3 $4
+'
+# K scan
+def kscan '
+	if ($# != 4) {
+		eprint "Usage:  kscan start finish intervals time"
+		exit
+	} 
+	waitall; get_angles; calcHKL
+	hklscan H H $1 $2 L L $3 $4
+'
+# L scan
+def lscan '
+	if ($# != 4) {
+		eprint "Usage:  lscan start finish intervals time"
+		exit
+	} 
+	waitall; get_angles; calcHKL
+	hklscan H H K K $1 $2 $3 $4
+'
+# delta-temperature scan (tscan relative to current position)
+def dtscan '
+	if ($# != 4 && $# != 5) {
+		eprint "Usage:  dtscan start finish intervals time [sleep]"
+		exit
+	} 
+	tscan TEMP_SP+($1) TEMP_SP+($2) $3 $4 $5
+'
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/scans1.mac
+#
+#  @(#)scans1.mac	5.9  07/01/10 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988-2006,2008,2010
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+#########################################################################
+#
+#                        SCAN-HELPER MACROS
+#
+#########################################################################
+#
+#  _ascan scans the number of motors given by _nm.
+#  The arrays _m[], _s[], _f[] and _d[] contain the motor
+#  numbers, start, finish and step sizes for each of the
+#  scanned motors.  The macros ascan, a2scan, a3scan and
+#  a4scan call _ascan.
+#
+def _ascan '
+	if (_n1 <= 0) {
+		eprint "Intervals <= 0"
+		exit
+	} ;
+	{
+	 local i
+	 for (i=0;i<_nm;i++) {
+		 _bad_lim = 0
+		 _chk_lim _m[i] _s[i]
+		 _chk_lim _m[i] _f[i]
+		 if (_bad_lim) exit;
+	 }
+	}
+	HEADING=_nm>1? sprintf("a%dscan ", _nm):"ascan "
+	{
+	 local i
+	 for (i=0;i<_nm;i++) {
+		HEADING=sprintf("%s%s",HEADING,sprintf(" %s %g %g ",\
+			motor_mne(_m[i]),_s[i],_f[i]))
+		_d[i] = (_f[i] - _s[i]) / _n1
+	 }
+	}
+	HEADING=sprintf("%s %g %g",HEADING,_n1,_ctime)
+	_n1++
+	_cols=_nm+_hkl_col
+	X_L = motor_name(_m[0])
+	Y_L = cnt_name(DET)
+	_sx = _s[0]; _fx = _f[0]
+	_stype = 1|(_nm<<8)
+	FPRNT=PPRNT=VPRNT=""
+	{
+	 local i
+	 for (i=0;i<_nm;i++) {
+	     FPRNT=sprintf("%s%s  ",FPRNT,motor_name(_m[i]))
+	     PPRNT=sprintf("%s%8.8s ",PPRNT,motor_name(_m[i]))
+	     VPRNT=sprintf("%s%9.9s ",VPRNT,motor_name(_m[i]))
+	 }
+	}
+	FPRNT=sprintf("%s%s  ",FPRNT,_hkl_sym1)
+	scan_head
+	PFMT=sprintf("%%s%%8.%df ",UP)
+	VFMT=sprintf("%%s%%9.%df ",UP)
+	def _scan_on \'
+	 for (; NPTS < _n1; NPTS++) {
+		local i
+		for (i=0;i<_nm;i++)
+			A[_m[i]] = _s[i] + NPTS * _d[i]
+		scan_move
+		FPRNT=PPRNT=VPRNT=""
+		for (i=0;i<_nm;i++) {
+		     FPRNT=sprintf("%s%.8g ",FPRNT,A[_m[i]])
+		     PPRNT=sprintf(PFMT,PPRNT,A[_m[i]])
+		     VPRNT=sprintf(VFMT,VPRNT,A[_m[i]])
+		}
+		FPRNT=sprintf("%s%s ",FPRNT,_hkl_val)
+		scan_loop
+		scan_data(NPTS,A[_m[0]])
+		scan_plot
+	 }
+	 scan_tail
+	\'
+	_scan_on
+'
+
+# Cleanup macro used by all of the scans.
+def _scanabort '
+	_cleanup2
+	_cleanup3
+	_stype &= ~0x80
+	comment "Scan aborted after %g points" NPTS
+	sync
+'
+# `_cleanup2' and `_cleanup3' are available for higher level scan definitions
+def _cleanup2 ''
+def _cleanup3 ''
+
+# "resume" restarts aborted scans.  It relies on the user not
+#  tampering with the scan loop variables.
+#  (_stype&8 indicates a 2D-mesh scan).
+def resume '
+	if (NPTS >= (_stype&8? _n1*_n2:_n1)) {
+		eprint "Last scan appears to be finished."
+		exit
+	}
+	if (($1) && _stype&8)
+		eprint "Can\'t change the point number of a mesh scan."
+	else
+		NPTS += $1
+	if (NPTS < 0) NPTS  = 0
+	cdef("cleanup_once", "_scanabort;", "scan_cleanup")
+	_stype |= 0x80
+	comment "Scan resumed"
+	if (PLOT_MODE&1)
+		plot_cntl("erase")
+	_scan_on
+'
+# "scan_on" is the old name for "resume"
+def scan_on 'resume'
+#########################################################################
+#
+# Head macros - the heading is printed at the beginning of a scan.
+#
+
+# def Pheader 'printf("\n Setpoint = %g (%g C)\n", TEMP_SP,DEGC_SP)'
+# def Fheader '_cols++;printf("#X %gKohm (%gC)\n", TEMP_SP,DEGC_SP)'
+# def Plabel  'sprintf("%7.7s %7.7s ","T-set","T-degC")'
+# def Pout    'sprintf("%7.5g %7.5g ",TEMP_SP,DEGC)'
+# def Flabel  '"DegC  "'
+# def Fout    'sprintf("%g ",DEGC)'
+# def Ftail   'printf("#R %d %g %g %g %g %g %g\n", \
+#                 SCAN_N, pl_xMAX, pl_MAX, pl_FWHM, pl_CWHM, pl_COM, pl_SUM);'
+
+def Pheader ''          # Printer header
+def Fheader ''          # File header
+def Plabel  '""'        # Printer/Video label
+def Pout    '""'        # Printer/Video out
+def Flabel  '""'        # File label
+def Fout    '""'        # File out
+def Ftail   ''          # File tail
+
+cdef("user_prescan_head")
+cdef("user_Fheader")
+cdef("user_Pheader")
+cdef("user_postscan_head")
+cdef("user_scan_loop")
+cdef("user_scan_plot")
+cdef("user_scan_tail")
+
+cdef("spec_scan_tail")  # Used by special scans, such as powder scans
+
+#########################################################################
+#
+# The head macro, called by all the scans.
+def _head '
+	user_prescan_head
+	_scan_time
+	waitall; get_angles; calcHKL
+	NPTS = T_AV = MT_AV = 0
+	DATE = date()
+	TIME = TIME_END = time()
+	_cp = A[_pmot]
+	cdef("cleanup_once", "_scanabort;", "scan_cleanup")
+	_stype |= 0x80
+
+	# DATA FILE HEADER
+	if (DATAFILE != "") {
+		local i,j,z,s
+		ond; offt
+		printf("\n#S %d  %s\n#D %s\n",++SCAN_N,HEADING,DATE)
+		if (_ctime < 0)
+			printf("#M %g  (%s)\n", -_ctime, cnt_name(MON))
+		else
+			printf("#T %g  (%s)\n", _ctime, cnt_name(sec))
+
+		_head_par G 0
+		_head_par U 1
+		_head_par UB 3
+		_head_par Q 4
+
+		printf("#Q %s\n", _hkl_val)
+
+		for (i=0; i<MOTORS; i+= 8) {
+			s = sprintf("#P%d ",i/8)
+			for (j=i; j<i+8 && j<MOTORS;) {
+				if (motor_name(mA[j]) != "unused")
+					s = s sprintf("%.8g", A[mA[j]])
+				if (j%8 == 7)
+					break
+				s = s " "
+				j++
+			}
+			print s
+		}
+		Fheader
+		user_Fheader
+		z = _ctime < 0? sec:MON
+		for (i=j=0;i<COUNTERS;i++)
+			if (i != z && i != DET && is_using_counter(i))
+				j++
+		printf("#N %d\n", _cols + (MON<0? 2:3) + j)
+		_cols = 0
+		printf("#L %s%sEpoch",FPRNT,Flabel)
+		for (i=0;i<COUNTERS;i++)
+			if (i != z && i != DET && is_using_counter(i))
+				printf("  %s",cnt_name(i))
+		if (z >= 0)
+			printf("  %s",cnt_name(z))
+		printf("  %s\n",cnt_name(DET))
+		offd; ont
+	} else
+		SCAN_N++
+	T_L = sprintf("Scan %d", SCAN_N)
+
+	# PRINTER HEADER
+	ifp {
+		local i, j, k, s
+		onp; offt
+		printf("\n")
+		formfeed
+		printf("\nScan %3d   %s   file = %s  %s  user = %s\n",\
+			SCAN_N,DATE,DATAFILE,TITLE,USER)
+		printf("%s\n\n",HEADING)
+		for (i=0; i<MOTORS; i+=8) {
+			s = "  "
+			for (j=i; j<i+8 && j<MOTORS;) {
+				if (is_using_motor(mA[j]))
+					s = s sprintf("%9.9s", motor_name(mA[j]))
+				if (j%8 == 7)
+					break
+				s = s " "
+				j++
+			}
+			print s
+			s = "  "
+			for (j=i; j<i+8 && j<MOTORS;) {
+				if (is_using_motor(mA[j]))
+					s = s sprintf("%9.6g ", A[mA[j]])
+				if (j%8 == 7)
+					break
+				s = s " "
+				j++
+			}
+			print s
+		}
+		Pheader
+		user_Pheader
+		printf("\n  # %s %8.8s ", _hkl_sym11,cnt_name(sec))
+		if (MON >= 0)
+			printf("%8.8s ", cnt_name(MON))
+		printf("%8.8s %s%s\n", cnt_name(DET),PPRNT,Plabel)
+		offp; ont
+	}
+	# TTY HEADER
+	{
+		local i, n, s
+
+		if (DATAFILE == "/dev/null" || DATAFILE == "null")
+			s = "**NO DATA FILE**"
+		else
+			s = sprintf("file = %s", DATAFILE)
+		printf("\nScan %3d   %s   %s  %s  user = %s\n%s\n\n",\
+			SCAN_N,DATE,s,TITLE,USER,HEADING)
+		s = sprintf("  # %s%8.8s ", VPRNT,cnt_name(DET))
+
+		tty_cntl("resized?")
+		n = int((COLS - length(VPRNT) - length(Plabel) - 24) / 9)
+		if (MON >= 0) {
+			s = s sprintf("%8.8s ",cnt_name(MON))
+			n--
+		}
+		s = s sprintf("%10.10s ",cnt_name(sec))
+
+		for (i=0; i<COUNTERS && n>0; i++) {
+			if (i!=DET && i !=MON && i!=sec && is_using_counter(i)) {
+				s = s sprintf("%8.8s ", cnt_name(i))
+				n--
+			}
+		}
+		printf("%s%s\n",s,Plabel)
+	}
+	user_postscan_head
+'
+# Used by head to print-out the total scan time
+def _scan_time '{
+	local t n
+
+	n=_stype&8? _n1*_n2:_n1
+	printf("Total %d points, ", n)
+	t = n*_ctime
+	if (_ctime < 0) {
+		printf("%g %s counts", -t,cnt_name(MON))
+		if (MON_RATE) {
+			t /= -MON_RATE
+			printf("\nEstimated ")
+		}
+	}
+	if (_sleep)
+		t += n*_sleep
+	if (t > 0) {
+		local h m s
+		h=int(t/3600); m=int(t/60)-h*60; s=int(t)-h*3600-m*60
+		printf("%g seconds", t)
+		if (h || m)
+			printf(" (%d:%2.2d:%2.2d)",h,m,s)
+	}
+	printf("\n")
+}'
+# Used by head to save various geometry parameters
+# $1 is parameter name.  $2 is #G suffix
+def _head_par '
+	if (whatis("$1[0]")) {
+		local i
+		printf("#G$2")
+		for (i=0;;i++)
+			if (whatis(sprintf("$1[%d]", i)))
+				printf(" %.10g", $1[i])
+			else break
+		printf("\n")
+	}
+'
+
+# The loop macro, called by all the scans at each iteration
+def _loop '{
+	local z,i,n
+	if (!set_sim(-1) && _sleep) {
+		do_sleep _sleep
+	}
+	measure0
+	scan_count _ctime
+	measure1
+	measure2
+	z = _ctime < 0? sec:MON
+	T_AV += DEGC;
+	if (z >= 0)
+		MT_AV += S[z]
+	s = sprintf("%3d %s%8s ", NPTS,VPRNT,S[DET])
+
+	tty_cntl("resized?")
+	n = int((COLS - length(VPRNT) - length(Pout) - 24) / 9)
+	if (MON >= 0) {
+		s = s sprintf("%8s ", S[MON])
+		n--
+	}
+	s = s sprintf("%10s ",S[sec])
+
+	for (i=0; i<COUNTERS && n>0; i++) {
+		if (i!=DET && i !=MON && i!=sec && is_using_counter(i)) {
+			s = s sprintf("%8.4g ", S[i])
+			n--
+		}
+	}
+
+	printf("%s%s\n",s,Pout)
+
+	ifp {
+		fprintf(PRINTER,"%3d %s %8s ", NPTS,_hkl_val11,S[sec])
+		if (MON >= 0)
+			fprintf(PRINTER,"%8s ", S[MON])
+		fprintf(PRINTER,"%8s %s%s\n", S[DET],PPRNT,Pout)
+	}
+	if (DATAFILE != "") {
+		TIME_END = time()
+		fprintf(DATAFILE,"%s%s%d",FPRNT,Fout,TIME_END - EPOCH)
+		for (i=0;i<COUNTERS;i++)
+			if (i != z && i != DET && is_using_counter(i))
+				fprintf(DATAFILE," %.8g",S[i])
+		if (z >= 0)
+			fprintf(DATAFILE," %.8g",S[z])
+		fprintf(DATAFILE," %.8g\n",S[DET]);
+	}
+        user_scan_loop
+}'
+# The tail macro, called by all the scans when they complete
+def _tail '
+	user_scan_tail
+	spec_scan_tail
+	cdef("cleanup_once", "", "scan_cleanup", "delete")
+	TIME_END = time()
+	if (!(_stype&8)) {
+		ond; offt
+		Ftail
+		offd; ont
+		plot
+	}
+	_stype &= ~0x80
+'
+def setscans '
+    _sleep = getval("\nSleep (settle) time before each scan point",_sleep)
+    _upd_flg = yesno("Show updated moving and counting during scans",_upd_flg)
+    _set_upd
+    _pre_chk = yesno("Do hklscan prescan limit-check loops",_pre_chk)
+    _sav_geo_mot = yesno("Save motors to data file at each point for HKL scans",\
+	_sav_geo_mot)
+'
+
+def _set_upd '
+	if (_upd_flg) {
+		rdef _move  \'_upd_move\'
+		rdef _count \'_upd_count\'
+	} else {
+		rdef _move  \'_ord_move\'
+		rdef _count \'_ord_count\'
+	}
+'
+# basic updated move
+def _upd_move '
+	move_em
+	for (;;) {
+		local i, done
+		get_angles
+		printf("\r%3d",NPTS)
+		if (_stype&1)
+		    for (i=0;i<_nm;i++)
+			printf(" %9.4f",A[_m[i]])
+		else if (_stype&2)
+		    for (i=0;i<_numgeo;i++)
+			printf(" %9.4f",A[mA[i]])
+		tty_cntl("ce")
+		printf("\r")
+		if (done)
+			break;
+		sleep(UPDATE)
+		done = !chk_move
+	}
+	calcHKL
+'
+# basic updated count
+#       Nov 1, 1994 - removed initial "waitmove", as it interfered
+#       with new count-while-moving macros.
+def _upd_count '
+	if ($1) for (;;) {
+		count_em $1
+		for (;;) {
+			local   done
+			get_counts
+			printf("\r%3d %s%8s ", NPTS,VPRNT,S[DET])
+			if (MON >= 0)
+				printf("%8s ", S[MON])
+			printf("%10s", S[sec])
+			tty_cntl("ce")
+			printf("\r")
+			if (done)
+				break
+			sleep(UPDATE)
+			done = !chk_count
+		}
+		chk_beam
+	}
+'
+# ordinary move
+def _ord_move 'move_em; waitmove; get_angles; calcHKL'
+# ordinary count
+def _ord_count 'count'
+
+def scan_head  '_head'
+def scan_loop  '_loop'
+def scan_move  '_move'
+def scan_count '_count'
+def scan_plot  'user_scan_plot; _plot'
+def scan_tail  '_tail'
+
+# Parameterize HKL formats, to accommodate two-circle, etc. geometry
+
+def _hkl_val 'sprintf("%g %g %g",H,K,L)'
+def _hkl_val11 'sprintf("%11.5g %11.5g %11.5g",H,K,L)'
+def _hkl_sym1 '"H  K  L"'
+def _hkl_sym2 '"HKL"'
+	       # 12345678901 12345678901 12345678901
+def _hkl_sym11 '"          H           K           L"'
+
+constant _hkl_col 3
+
+# Some people don't use HKL
+def no_hkl '
+	def _hkl_val \'""\'
+	def _hkl_val11 \'""\'
+	def _hkl_sym1 \'""\'
+	def _hkl_sym2 \'""\'
+	def _hkl_sym11 \'""\'
+	def calcHKL \'\'
+	def savegeo \'\'
+	def startgeo \'\'
+	constant _hkl_col 0
+
+	def _un \'if (whatis("\$1")&2) undef \$1\'
+	_un hklscan
+	_un hklmesh
+	_un _hklmesh
+	_un hkcircle
+	_un hlcircle
+	_un klcircle
+	_un hkradial
+	_un hlradial
+	_un klradial
+	_un _hklline
+	_un abscan
+	_un abmesh
+	_un _abmesh
+	_un th2th
+	_un hscan
+	_un kscan
+	_un lscan
+	_un an
+	_un uan
+	_un _an
+	_un br
+	_un ubr
+	_un _br
+	_un mk
+	_un _mk
+	_un _mk
+	_un _updateHKL
+	_un cal
+	_un ca
+	_un ci
+	_un wh
+	_un _var
+
+	undef _un
+'
+
+# Usage:  _chk_lim motor position
+def _chk_lim '{
+	local u t
+
+	if ((u = dial($1, $2)) < (t = get_lim($1, -1))) {
+		eprintf("%s will hit low limit at %g.\n",motor_name($1),t)
+		_bad_lim++
+	} else if (u > (t = get_lim($1, 1))) {
+		eprintf("%s will hit high limit at %g.\n",motor_name($1),t)
+		_bad_lim++
+	}
+}'
+
+# _hkl_lim does _chk_lim for motors used in general HKL scan.
+def _hkl_lim ''
+
+# Scan globals
+global DATE TIME TIME_END       # Start date, start and end times of scans
+global HEADING TITLE SCAN_N     # Scan header, title and number
+global DATAFILE                 # Data file
+global FPRNT PPRNT VPRNT        # File, printer and video strings
+global PFMT VFMT                # Format strings
+global X_L                      # Label for independent variable
+global Y_L                      # Label for dependent variable
+global T_L                      # Label for title (scan number, usually)
+global NPTS                     # Counter for point number in scans
+global T_AV                     # Average temperature (from DEGC)
+global MT_AV                    # Average monitor counts (from S[mon])
+
+global  _nm             # Number of motors in angle scan for _ascan
+global  _m _s _f _d     # Arrays for _ascan
+global _m1 _m2 _m3      # Motor numbers for 1, 2 and 3 motor scans
+global _s1 _s2 _s3      # Starting positions for 1, 2 and 3 parameter scans
+global _f1 _f2 _f3      # Finish positions
+global _d1 _d2 _d3      # Step sizes
+global _c1 _c2 _c3 _c4  # Current (or center) positions for delta scans
+global _sx _fx          # Minimum and maximum x values for plotting
+global _n1 _n2          # Number of points for scans
+global _g1 _g2          # Point counters in grid scans
+global _numgeo          # Number of motors for geometry configuration
+global _cols            # Number of extra columns to add to data file
+global _const           # Used with HKL radial and arc scans
+global _ctime           # Count time for the scans
+global _stime           # Optional sleep time for temperature scans
+global _sleep           # Precounting sleep time
+global _bad_lim         # Flag used in the limit-checking macros
+global _pre_chk         # If set, do prescan limit checks
+global _sav_geo_mot     # If set, save geo motors at each point HKL scan point
+global _upd_flg         # If set, do updated counting and moving in scans
+global _stype           # Scan type
+			# These scan-type bit flags are not defined
+			# as symbols to conserve symbol table space.
+			#       1 (0x01) = motor scan
+			#       2 (0x02) = hkl scan
+			#       4 (0x04) = temp scan
+			#       8 (0x08) = mesh scan
+			#      16 (0x10) = time scan
+			#     128 (0x80) = scanning active
+			# High byte of scan types holds number of motors
+			# being scanned in motor scans
+global _pmot            # Motor number for powder averaging
+global _pwid            # Width in degrees for powder average
+global _cp              # Start position of _pmot for angle scans
+
+if (unset("_pre_chk"))
+	_pre_chk = 1
+
+_set_upd                # Assign _move and _count definitions
+
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/timescan.mac
+#  @(#)timescan.mac	5.4  07/01/10 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 2001,2005,2008,2009,2010
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#  (Based on ESRF BLISS macros.  See http://www.esrf.fr/computing/bliss.)
+#
+#########################################################################
+
+def timescan '
+	if ($# > 2) {
+		print "Usage:  timescan [counting_time [sleep_time]]"
+		exit
+	}
+	HEADING = "timescan"
+	_timescan 0 $*
+'
+
+#  Similar to timescan but it is limited to <npoints>
+#  consecutive data points.
+def loopscan '
+	if ($# > 3 || $1 < 1) {
+		print "Usage:  loopscan npoints [counting_time [sleep_time]]"
+		exit
+	}
+
+	HEADING = sprintf("loopscan %d", $1)
+	_timescan $*
+'
+
+def _timescan '
+	if ($# > 1) _ctime = $2; else _ctime = COUNT
+	if ($# > 2) _stime = $3; else _stime = 0
+
+	HEADING = sprintf("%s %g %g", HEADING, _ctime, _stime)
+	_cols = 1
+	_sx = 0; _fx= 20*((_ctime>0? _ctime:1) + _stime + _sleep)
+	X_L = "Time"
+	Y_L = cnt_name(DET)
+	_stype = 16
+	FPRNT="Time  "
+	PPRNT=sprintf("%8.8s ", "Time")
+	VPRNT=sprintf("%9.9s ", "Time")
+	_n1 = int($1)
+	scan_head
+	_n1 = 0
+	def _scan_on \'{
+		local _time maxPTS shft
+		maxPTS = array_op("rows", SCAN_D)
+		shft = maxPTS/2
+		for (; int($1) == 0 || NPTS < int($1); NPTS++) {
+			if (NPTS - _n1 >= maxPTS){
+				SCAN_D[0:(maxPTS - shft - 1)][] = SCAN_D[shft:(maxPTS - 1)][]
+				_n1 += shft
+			}
+			_time = time()-TIME
+			FPRNT=sprintf("%g ",_time)
+			PPRNT=sprintf("%8.4g ",_time)
+			VPRNT=sprintf("%9.4f ",_time)
+			scan_loop
+			scan_data(NPTS-_n1, _time)
+			if (_time > _fx) {
+				local val
+				val = NPTS
+				# will cause scan_plot to refresh
+				NPTS = 0
+				_fx += 0.1 * (_fx - _sx)
+				if (_fx < _time)
+					_fx = _time + 0.1 * (_time - _sx)
+				_sx = SCAN_D[1][0]
+				scan_plot
+				NPTS = val
+			}
+			scan_plot
+			do_sleep _stime
+		}
+		scan_tail
+	}\'
+	TIME=time()
+	_scan_on
+'
+
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/count.mac
+#
+#  @(#)count.mac	5.3  01/29/08 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988-2003,2007,2008
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+#
+# Counting macros
+
+# Test if a counter channel should be displayed
+def is_using_counter(n) '{
+	if (cnt_name(n) == "unused")
+		return(0);
+	if (counter_par(n, "disable"))
+		return(0);
+	return(1);
+}'
+
+# local hooks to hardware counting from user level
+def user_precount ''
+def user_postcount ''
+
+# count_em is the lowest level counting macro.
+# tcount() and mcount() are built-in functions.
+def count_em '
+	COUNT_TIME = $#?($1):COUNT
+	user_precount
+	{
+	 if (COUNT_TIME)
+		COUNT_TIME > 0? tcount(COUNT_TIME):mcount(-COUNT_TIME)
+	}
+	user_postcount
+'
+
+# local hook for all counter reads.
+def user_getcounts ''
+
+# get_counts is the lowest level counter reading macro.
+def get_counts '
+	getcounts
+	user_getcounts
+'
+
+# Users can do something special after a ct command
+def user_ct ''
+
+# A version of "ct" that shows results after a ^C
+def ct '{
+	cdef("cleanup_once", "onp; show_cnts; offp; user_ct", "ct")
+	waitmove
+	count_em $*
+	waitcount
+	cdef("cleanup_once", "", "ct", "delete")
+	onp; show_cnts; offp
+	user_ct
+}'
+
+# Old version of ct ...
+# A user calls "ct" to count for some interval and display results
+def oct '
+	waitmove
+	count_em $*
+	waitcount
+	onp; show_cnts; offp
+'
+
+# "uct" does updated counting
+def uct '{
+	waitmove
+	count_em $*
+	if (chk_count) {
+		local i, n, done
+
+		cdef("cleanup_once", "user_ct", "uct")
+		n = COUNTERS > 6? 6:COUNTERS
+		printf("\n")
+		for (i=0;i<n;i++)
+			if (is_using_counter(i))
+				printf("%12.12s ",cnt_name(i))
+		printf("\n")
+		for (;;) {
+			get_counts
+			for (i=0;i<n;i++)
+				if (is_using_counter(i))
+					printf("%12g ",S[i])
+			printf("\r")
+			if (done)
+				break
+			sleep(UPDATE)
+			done = !chk_count
+		}
+		printf("\n")
+		cdef("cleanup_once", "", "uct", "delete")
+		user_ct
+	}
+}'
+
+# something for counting with more than 6 counters
+def uctn '{
+	waitmove
+	count_em $*
+	if (chk_count) {
+		local i, j, k, o, s, done
+		cdef("cleanup_once", "user_ct", "uctn")
+		o = ROWS - 2 * int((COUNTERS + 5) / 6) - 1
+		s = ""
+		tty_move(0, o)
+		tty_cntl("cd")
+		printf("-----------------------------------------")
+		for (i=j=0;i<COUNTERS;i++) {
+			if (!is_using_counter(i))
+				continue
+			j++
+			s = s sprintf("%12.12s ",cnt_name(i))
+			if (j%6)
+				continue
+			tty_move(0, o + 2 * int(j/6) - 1, s)
+			s = ""
+		}
+		if (j%6)
+			tty_move(0, o + 2 * int(j/6) + 1, s)
+		for (;;) {
+			get_counts
+			s = ""
+			for (i=j=0;i<COUNTERS;i++) {
+				if (!is_using_counter(i))
+					continue
+				j++
+				s = s sprintf("%12g ",S[i])
+				if (j%6)
+					continue
+				tty_move(0, o + 2 * int(j/6), s)
+				s = ""
+			}
+			if (j%6)
+				tty_move(0, o + 2 * int(j/6) + 2, s)
+			if (done)
+				break
+			sleep(UPDATE)
+			done = !chk_count
+		}
+		printf("\n")
+		cdef("cleanup_once", "", "uctn", "delete")
+		user_ct
+	}
+}'
+
+# "count" is called by the scans to count to monitor or time.
+# It runs the clock and reads the scalers.
+def count '{
+	waitmove
+	if ($1) for (;;) {
+		count_em $1
+		waitcount
+		get_counts
+		chk_beam
+	}
+	if (S[sec] && MON >= 0)
+		MON_RATE=S[MON]/S[sec]
+}'
+
+# The chk_beam macro is hook to allow you to put in code to see if
+# you have obtained sufficient counts.
+
+global chk_thresh
+
+def chk_beam '
+	local flag delay
+	if (delay == 0)
+		delay=time()
+	if (set_sim(-1) || S[MON] >= chk_thresh)  {
+		if (flag) {
+			# You can do something here if beam had been down.
+			printf("Waited %d seconds for beam.",time()-delay)
+			tty_cntl("ce")
+			printf("\n")
+		}
+		flag=delay=0
+		break
+	}
+	if (flag == 0) {
+		# You can do something here if beam is down.
+		flag = 1
+	}
+	printf("Been waiting %d seconds for beam ...\r",time()-delay)
+'
+# By default, the chk_beam macro just jumps out of the count loops
+def chk_beam '
+	break
+'
+
+# The macro "show_cnts" reads the scalers and displays the results.
+def show_cnts '{
+	local   i
+
+	get_counts
+	printf("\n%s\n\n", date())
+	for (i=0;i<COUNTERS;i++) {
+		if (!is_using_counter(i))
+			continue
+		printf("%12s = %g%s\n", cnt_name(i), S[i], \
+		   i != sec && S[sec]? sprintf(" (%g/s)", S[i] / S[sec]):"")
+	}
+}'
+
+global COUNT            # Default count time
+if (unset("COUNT"))
+	COUNT = 1
+
+# The following scaler assignments determine how scaler contents
+# are used in the scans.  Use the "counters" macro to change
+# these assignments.  Also, use "plotselect" for choosing which
+# counters to plot.
+#
+# The DET counter will be the last column in the data file for a scan.
+# The MON counter will be used to calculate MON_RATE.
+# The MON counter will appear in the #M data file entry.
+# The MON counter will be the second to last column in the scan data file.
+
+global DET              # Scaler channel to be used as detector
+global MON              # Scaler channel to be used as monitor
+
+# Default scaler assignments.  If there are only two channels, we
+# figure there is no monitor
+if (unset("DET")) {
+	if (COUNTERS == 2) {
+		MON=-1
+		DET=1
+	} else {
+		MON=(cnt_mne("mon") == "?")? 1:mon
+		DET=(cnt_mne("det") == "?")? 2:det
+	}
+}
+
+global MON_RATE		# Monitor rate (defined in count macro)
+global COUNT_TIME       # Actual count time as used by count_em macro
+
+# Don't remove this last line.
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/motor.mac
+#
+#  @(#)motor.mac	5.4  12/12/02 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988-2002
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+#
+# Motor and motor position macros
+
+# test if a counter channel should be displayed
+def is_using_motor(n) '{
+	if (motor_name(n) == "unused")
+		return(0);
+	if (motor_par(n, "disable"))
+		return(0);
+	return(1);
+}'
+
+# local hooks for all moves.
+def user_premove ''
+def user_postmove ''
+
+# move_em is the lowest level motor moving macro.
+# move_all is a built-in command.
+def move_em '
+	user_premove
+	move_all
+	user_postmove
+'
+
+# local hook for all motor reads.
+def user_getangles ''
+
+# get_angles is the lowest level motor reading macro.
+def get_angles '
+	read_motors(0)
+	user_getangles
+'
+
+# Define the "move_poll" macro as 'waitmove' if you don't want
+# to get prompted until the motors have finished moving ...
+#
+# def move_poll 'waitmove'
+#
+# ... By default, though, the move macros return immediately
+def move_poll ''
+
+# Move a single motor
+#def mv  '_mv $*; move_poll'
+def mv  'A[$1]=$2'
+#def umv '_mv $*; _update("$1")'         # "update" version of mv
+def umv  'A[$1]=$2;sleep(3)'
+def _mv '
+	if ($# != 2) {
+		eprint "Usage:  mv motor position"
+		exit
+	}
+	_check0 "$1"
+	waitmove; get_angles; A[$1]=$2
+	ifp { fprintf(PRINTER,"\nmv $1 %g\n", A[$1]) }
+	move_em
+'
+# Move a single motor DIAL UNITS
+def mvd  '_mvd $*; move_poll'
+def umvd '_mvd $*; _update("$1")'       # "update" version of mvd
+def _mvd '
+	if ($# != 2) {
+		eprint "Usage:  mvd motor dial_position"
+		exit
+	}
+	_check0 "$1"
+	waitmove; get_angles; A[$1]=user($1, $2)
+	ifp { fprintf(PRINTER,"\nmvd $1 %g\n", A[$1]) }
+	move_em
+'
+# Home a single motor
+# With three arguments, chg_dial() sets the dial position to third
+# argument when home is reached
+def home '
+	if ($# < 1 || $# > 3) {
+		eprint "Usage:  home motor [+|-] [home_pos]"
+		exit
+	}
+	_check0 "$1"
+	waitmove
+	ifp { fprintf(PRINTER,"\n$*\n") }
+	if ($# == 1)
+		chg_dial($1, "home")
+	else if ($# == 2) {
+		if ("$2" == "+")
+			chg_dial($1, "home+")
+		else if ("$2" == "-")
+			chg_dial($1, "home-")
+		else
+			chg_dial($1, "home", eval("$2+0"))
+	} else if ($# == 3) {
+		if ("$2" == "+")
+			chg_dial($1, "home+", $3)
+		else if ("$2" == "-")
+			chg_dial($1, "home-", $3)
+		else {
+			eprint "Usage:  home motor [+|-] [home_pos]"
+			exit
+		}
+	}
+	move_poll
+'
+# Move a single motor to a position relative to the current
+#def mvr  '_mvr $*; move_poll'
+def mvr  'A[$1]+=$2'
+#def umvr '_mvr $*; _update("$1")'
+def umvr 'A[$1]+=$2; sleep(1)'
+def _mvr '
+	if ($# != 2) {
+		eprint "Usage:  mvr motor relative_position"
+		exit
+	}
+	_check0 "$1"
+	waitmove; get_angles; A[$1]+=($2)
+	ifp { fprintf(PRINTER,"\nmv $1 %g\n", A[$1]) }
+	move_em
+'
+
+# Local hook for setting motor position.  Need to use up arguments
+# to avoid syntax errors.
+def user_setpos '# $*'
+
+# Define a new motor position
+def set '{
+	if ($# != 2) {
+		eprint "Usage:  set motor new_user_value"
+		exit
+	}
+	local i, a[]
+
+	_check0 "$1"
+	waitmove; get_angles
+	a = A
+	if (chg_offset($1, $2))
+		exit
+	user_setpos $*
+	get_angles
+	for (i in a) if (a[i] != A[i]) {
+		comment "%s reset from %g to %g" "motor_name(i), a[i], A[i]"
+	}
+}'
+
+# Change a motor's dial position
+def set_dial '{
+	if ($# != 2) {
+		eprint "Usage:  set_dial motor new_dial_value"
+		exit
+	}
+	local new, u_old, d_old
+
+	_check0 "$1"
+	waitmove; get_angles
+	d_old = dial($1, u_old = A[$1])
+	new = $2
+	if (d_old != new) {
+	  if (new > get_lim($1, 1)) {
+	    eprint "Dial value above high limit.  Please set limit first."
+	    exit
+	  } else if (new < get_lim($1, -1)) {
+	    eprint "Dial value below low limit.  Please set limit first."
+	    exit
+	  }
+	  if (chg_dial($1, new))
+	    exit
+	  if (chg_offset($1, u_old))
+	    exit
+	  if (d_old != new) {
+	    comment "%s dial reset from %g to %g" "motor_name($1), d_old, new"
+	  }
+	}
+}'
+
+# Search for the mechanical origin and reset dial settings to zero
+def zero ' {
+	local i, m[], n, t
+
+	if ($# < 1) {
+		eprint "Usage:  zero motor [motor...]"
+		exit
+	}
+	n = split("$*", m)
+	for (i in m)
+		if ((m[i] = motor_num(t = m[i])) < 0) {
+			eprintf("Invalid motor:  \"%s\".\n", t)
+			exit
+		}
+	waitmove; getdials
+	for (i = 0; i < n; i++) {
+		if (get_lim(m[i], 1) < 0) {
+			eprintf(\
+"%s\'s zero is above soft limit.  Please check limits.\n",motor_name(m[i]))
+			continue
+		}
+		if (get_lim(m[i], -1) > 0) {
+			eprintf(\
+"%s\'s zero is below soft limit.  Please check limits.\n",motor_name(m[i]))
+			continue
+		}
+		if (chg_dial(m[i], "home") < 0)
+			exit
+		waitmove
+		chg_dial(m[i], 0)
+		comment "%s dial reset to 0" "motor_name(m[i])"
+		move_poll
+	}
+	get_angles
+}'
+# Change a motor limit
+def set_lm '
+	if ($# != 3) {
+		eprint "Usage:  set_lm motor low high"
+		exit
+	}
+	{
+	    _check0 "$1"
+	    if (!set_lim($1, dial($1, $2), dial($1, $3))) {
+		onp
+		printf("\n%s limits set to %g %g (dial units).\n",\
+			motor_name($1), get_lim($1, -1), get_lim($1, +1))
+		offp
+	    }
+	}
+'
+
+# show current (geometry) motor postions, only user units
+def _mot '{
+	local s[]
+	s[0] = "name"
+	s[1] = "user"
+	show_motor_info(s, 2, $#==1? $1:MOTORS)
+}'
+# Where are all the motors?  Shows name, mnemonic, user and dial.
+def wa '{
+	local s[]
+	waitmove
+	get_angles
+	onp
+	printf("\nCurrent Positions  (user, dial)\n")
+	s[0] = "name"
+	s[1] = "mne"
+	s[2] = "user"
+	s[3] = "dial"
+	show_motor_info(s, 4, MOTORS)
+	offp;
+}'
+# Where are all the motors?  Show only mnemonic and user units.
+def wu '{
+	local s[]
+	waitmove
+	get_angles
+	onp
+	printf("\nCurrent Positions\n")
+	s[0] = "mne"
+	s[1] = "user"
+	show_motor_info(s, 2, MOTORS)
+	offp;
+}'
+
+# Show information about selected motors
+def wm '{
+	local i, m[], n, t
+
+	if ($# == 0) {
+		eprint "Usage:  wm motor [motor ...]"
+		exit
+	}
+	n = split("$*", m)
+	for (i in m)
+		if ((m[i] = motor_num(t = m[i])) < 0) {
+			eprintf("Invalid motor:  \"%s\".\n", t)
+			exit
+		}
+	printf("\n%10s", "")
+	for (i = 0; i < n; i++)
+		printf("%10.9s ", motor_name(m[i]))
+	printf("\n%10s", "")
+	for (i = 0; i < n; i++)
+		printf("%10.9s ", motor_mne(m[i]))
+	get_angles
+	printf("\nUser")
+	printf("\n%-10s", " High")
+	for (i = 0; i < n; i++)
+		printf("%10.4f ", user(m[i], get_lim(m[i], 1)))
+	printf("\n%-10s", " Current")
+	for (i = 0; i < n; i++)
+		printf("%10.4f ", A[m[i]])
+	printf("\n%-10s", " Low")
+	for (i = 0; i < n; i++)
+		printf("%10.4f ", user(m[i], get_lim(m[i], -1)))
+	printf("\nDial")
+	printf("\n%-10s", " High")
+	for (i = 0; i < n; i++)
+		printf("%10.4f ", get_lim(m[i], 1))
+	printf("\n%-10s", " Current")
+	for (i = 0; i < n; i++)
+		printf("%10.4f ", dial(m[i], A[m[i]]))
+	printf("\n%-10s", " Low")
+	for (i = 0; i < n; i++)
+		printf("%10.4f ", get_lim(m[i], -1))
+	printf("\n")
+}'
+
+# List motor limits
+def lm '{
+	waitmove; get_angles
+	if ($# > 0) {
+		onp
+		wm $*
+		offp;
+	} else {
+		local s[]
+		onp
+		printf("\nUSER Limits (high, current, low):\n")
+		s[0] = "name"
+		s[1] = "ulim+"
+		s[2] = "user"
+		s[3] = "ulim-"
+		show_motor_info(s, 4, MOTORS)
+		printf("\nDIAL Limits (high, current, low):\n")
+		s[1] = "lim+"
+		s[2] = "dial"
+		s[3] = "lim-"
+		show_motor_info(s, 4, MOTORS)
+		offp;
+	}
+}'
+
+# Internal macro used to display motor information at 8 motors per line.
+# Listing of motors named "unused" or that are disabled is suppressed.
+# First argument is array of info-types as "name", "mne", "user",
+# "dial", "lim+", "lim-", "ulim+" and "ulim-".  Second argument
+# is number of elements in array.  Third argument is number of motors.
+# If first argument is a single string as above, that is okay.
+def show_motor_info(f, ns, n) '{
+    local i, j, k, m, s[], t
+    for (i=0; i<n && i<MOTORS; i++) {
+	for (k=0;k<ns;k++)
+	    s[k]=""
+	for (j=0; i<n && i<MOTORS; i++) {
+	    if (!is_using_motor(mA[i]))
+		continue;
+	    for (k=0;k<ns;k++) {
+		m = mA[i]
+		t = (whatis("f")&0x01000000)? f[k]:f
+		if (t =="name")
+		    s[k] = s[k] sprintf("%9.9s", motor_name(m))
+		else if (t == "mne")
+		    s[k] = s[k] sprintf("%9.9s", motor_mne(m))
+		else if (t == "user")
+		    s[k] = s[k] sprintf("%9.4f", A[m])
+		else if (t == "dial")
+		    s[k] = s[k] sprintf("%9.4f", dial(m, A[m]))
+		else if (t == "lim+")
+		    s[k] = s[k] sprintf("%9.4f", get_lim(m, +1))
+		else if (t == "ulim+")
+		    s[k] = s[k] sprintf("%9.4f", user(m, get_lim(m, +1)))
+		else if (t == "lim-")
+		    s[k] = s[k] sprintf("%9.4f", get_lim(m, -1))
+		else if (t == "ulim-")
+		    s[k] = s[k] sprintf("%9.4f", user(m, get_lim(m, -1)))
+	    }
+	    if (j%8 == 7)
+		break
+	    for (k=0;k<ns;k++)
+		s[k] = s[k] " "
+	    j++
+	}
+	for (k=0;k<ns;k++)
+	    p s[k]
+    }
+}'
+# Check for valid motor name
+def _check0 '
+	if ("$1" != motor_mne($1) && "$1" != $1) {
+		eprint "Invalid motor name:  $1"
+		exit
+	}
+'
+
+# Kludge to allow users to change precision of motor position printout
+if (FRESH)
+	constant UP 4   # precision
+
+# "update" versions of wm - where motor(s)
+def uwm '_update("$*")'
+
+def _update(a) '{
+	if (chk_move) {
+		local   i, m[], s, n, t, done
+
+		n = split(a, m)
+		if (n == 0) {
+			eprint "No motors specified for updated move."
+			return
+		}
+		if (n > COLS / 10)
+			n = COLS / 10
+		for (i = 0; i < n; i++) {
+			if ((m[i] = motor_num(t = m[i])) >= 0)
+				continue;
+			eprintf("Bad motor for updated move:  \"%s\".\n", t)
+			return
+		}
+		for (i = 0; i < n; i++) {
+			if (i) s = s " "
+			s = s sprintf("%10.9s", motor_name(m[i]))
+		}
+		printf("\n%s\n", s)
+		for (;;) {
+			get_angles
+			for (i = 0, s = ""; i < n; i++) {
+				if (i) s = s " "
+				s = s sprintf("%10.4f", A[m[i]])
+			}
+			printf("%s\r", s)
+			if (done)
+				break
+			sleep(UPDATE)
+			done = !chk_move
+		}
+		print
+	}
+}'
+# Updated move of geometry motors with H, K, L
+def _updateHKL '{
+	if (chk_move) {
+		local i, n, s, f, done, wid, max
+
+		tty_cntl("resized?")
+		wid = COLS
+		wid -= _numgeo == 2? 18:27      # for HK or HKL
+		max = int(wid/10)
+		n = _numgeo < max? _numgeo:max
+		for (i=0;i<n;i++)
+			s = s sprintf("%9.9s ", motor_name(mA[i]))
+		f = _numgeo == 2? "\n%s %8s %8s\n":"\n%s %8s %8s %8s\n"
+		printf(f, s, "H","K","L")
+		f = _numgeo == 2? "%s %8.4f %8.4f\r":"%s %8.4f %8.4f %8.4f\r"
+		for (;;) {
+			get_angles; calcHKL
+			for (i = 0, s = ""; i < n; i++)
+				s = s sprintf("%9.4f ", A[mA[i]])
+			printf(f, s, H, K, L)
+			if (done)
+				break;
+			sleep(UPDATE)
+			done = !chk_move
+		}
+		print
+	}
+}'
+
+global mA
+
+# _assign is redefined by the various geometry motors so that
+# the "indirection" array mA[] contains the "interesting" motors first.
+# More importantly, for geometries that use an orientation matrix,
+# the first "_numgeo" motors in mA[] MUST be in the same order as assigned
+# in the C code of the geo_conf.c file (geo_fourc.c, geo_sixc.c, etc.)
+
+def _assign '_assign_mA 0'
+
+# The _assign_mA macro is called by each geometry's _assign macro
+# with the argument set to how many "special" motors there are.  The
+# special motors are assigned to the first elements of the mA[] array
+# in the _assign macro.  The remaining motors are assigned in order
+# to the rest of mA[] here.
+
+def _assign_mA '{
+	local   i j k
+
+	for (i = ($1), j = 0; i < MOTORS; j++) {
+		for (k = 0; k < ($1); k++)
+			if (mA[k] == j)
+				break
+		if (k == ($1))
+			mA[i++] = j
+	}
+
+}'
+
+_assign
+
+global UPDATE   # Update interval for real time display of motor positions
+
+# Lastly, some now obsolete and compatibility definitions ...
+
+# getangles and getdials used to be built-in commands.
+def getangles 'read_motors(0)'
+def getdials  'read_motors(1)'
+
+# Obsolete looping routine for old macros.
+# Normally k is set to MOTORS, but can be set to something else, e.g., 4
+def _mo_loop '{
+	local s
+	for (j = i, s = ""; j < i + 8 && j < k; j++)
+		if (is_using_motor(mA[i])) {
+			s = s sprintf("%$1", $2)
+			if (j < i + 7)
+				s = s " "
+		}
+	print s
+}'
+# Obsolete updated move routines
+def _update1 '_update("$*")'
+def _update2 '_update("$*")'
+def _update3 '_update("$*")'
+def _update4 '_update("$*")'
+def _update5 '_update("$*")'
+def _update6 '_update("$*")'
+
+def _update2hkl '_updateHKL'
+def _update3hkl '_updateHKL'
+def _update4hkl '_updateHKL'
+def _update5hkl '_updateHKL'
+
+def _units '{ local x; x="$*" } # NOTE:  _units is obsolete and unnecessary!'
+
+# Don't remove this line
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/slit.mac
+#
+#  @(#)slit.mac	5.1  01/29/01 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988,1992,1997
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+##########################################################################
+
+#
+# Some old slit macros to keep track of unmotorized slits.
+#
+
+# List slit settings
+def showslits '
+	for (_i = 0; _i < SLIT_N; _i++)
+	   printf("Slit %d  Height = %gmm  Width = %gmm\n",_i+1,SLIT_H[_i],SLIT_W[_i])
+'
+
+# Save slit settings on file and printer
+def saveslits '
+	for (_i = 0; _i < SLIT_N; _i++) {
+	   comment "Slit %d  %g x %g" "_i+1,SLIT_H[_i],SLIT_W[_i]"
+	}
+'
+# Change slit settings
+def setslits '
+	for (_i = 0; _i < SLIT_N; _i++) {
+		printf("Slit %d height (%gmm)? ", _i + 1, SLIT_H[_i])
+		_t1 = input()
+		printf("Slit %d width (%gmm)? ", _i + 1, SLIT_W[_i])
+		_t2 = input()
+		if (_t1 != "" && _t1 != SLIT_H[_i]) {
+			qcomment "Slit %d height reset from %g to %g"\
+				"i+1,SLIT_H[_i], _t1"
+			SLIT_H[_i] = _t1
+		} ;
+		if (_t2 != "" && _t2 != SLIT_W[_i]) {
+			qcomment "Slit %d width reset from %g to %g"\
+					"_i+1,SLIT_W[_i], _t2"
+			SLIT_W[_i] = _t2
+		} ;
+	}
+'
+# Change one slit setting
+def setslit '
+	if ($# != 3 || $1 <= 0 || $1 > SLIT_N) {
+		print "Usage:  slit number height width (use . for old value)"
+		exit
+	} ;
+    {
+	_a1 = $1
+	if ("$2" != "." && 0$2 != SLIT_H[_a1-1]) {
+		_a2 = 0$2
+		comment "Slit %d height reset from %g to %g"\
+				"_a1, SLIT_H[_a1-1], _a2"
+		SLIT_H[_a1-1] = _a2
+	} ;
+	if ("$3" != "." && 0$3 != SLIT_W[_a1-1]) {
+		_a3 = 0$3
+		comment "Slit %d width reset from %g to %g"\
+				" _a1, SLIT_W[_a1-1], _a3"
+		SLIT_W[_a1-1] = _a3
+	} ;
+    }
+'
+
+global   SLIT_H SLIT_W;         # slit arrays
+constant SLIT_N 1               # number of slits
+
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/hkl.mac
+#
+#  @(#)hkl.mac	5.2  10/28/02 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988,1989,1990,1992,1993,1997,1998,1999,2002
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+# Move 2-theta and theta
+def an  '_an $*; move_poll'
+def uan '_an $*; _update("tth th")'     # "update" version of above
+def _an '
+	if ($# != 2) {
+		eprint "Usage:  an tth th"
+		exit
+	} ;
+	waitmove; get_angles; A[tth]=$1; A[th]=$2
+	ifp { fprintf(PRINTER,"\nmv tth %g\nmv th %g\n", $1, $2) }
+	move_em
+'
+
+# Go to a Bragg position, i.e., reciprocal space coordinates H, K, and L
+def br  '_br $*; move_poll'
+def ubr '_br $*; _updateHKL'
+def _br '
+	if ($# != 3) {
+		eprint "Usage:  br H K L"
+		exit
+	} ;
+	waitmove; { H=$1; K=$2; L=$3 } get_angles
+	if (calcA) {
+		get_angles
+		calcHKL
+		exit
+	}
+	ifp { fprintf(PRINTER,"\nbr %g %g %g\n", H, K, L) }
+	move_em
+'
+# Same as br.
+def mk  '_mk $*; move_poll'
+def umk '_mk $*; _updateHKL'
+def _mk '
+	if ($# != 3) {
+		eprint "Usage:  mk H K L"
+		exit
+	} ;
+	waitmove; { H=$1; K=$2; L=$3 } get_angles
+	if (calcA) {
+		get_angles
+		calcHKL
+		exit
+	}
+	ifp { fprintf(PRINTER,"\nmk %g %g %g\n", H, K, L) }
+	move_em
+'
+
+# Calculate motor positions for a given H, K, and L
+def cal '
+	if ($# != 3) {
+		eprint "Usage:  cal H K L"
+		exit
+	} ;
+	{H = $1; K = $2; L = $3 }
+	if (calcA) {
+		waitmove; get_angles; calcHKL
+		exit
+	}
+	calcHKL
+	onp
+	printf("\nCalculated Positions:\n")
+	_var
+	offp
+'
+# Calculate motor positions for a given H, K, and L,
+# but reset positions to diffractometer positions
+def ca '
+	if ($# != 3) {
+		eprint "Usage:  ca H K L"
+		exit
+	} ;
+	{H = $1; K = $2; L = $3}
+	if (calcA) {
+		waitmove; get_angles; calcHKL
+		exit
+	}
+	calcHKL
+	onp
+	printf("\nCalculated Positions:\n")
+	_var
+	offp
+	waitmove; get_angles; calcHKL
+'
+# Where - reciprocal and real space
+def wh '
+	waitmove; get_angles; calcHKL
+	onp
+	_var
+	offp
+'
+# Print out position variables - defined by geometry macros
+def _var ''
+
+# inverse of `ca' - calculate HKL from angles
+def ci '
+	if ($# != _numgeo) {
+		local i, s
+		s = "Usage:  ci "
+		for (i=0;i<_numgeo;i++)
+			s = s sprintf("%s ",motor_mne(mA[i]))
+		eprintf("%s\n", s)
+		exit
+	} else {
+		local i n a
+		n = split("$*", a)
+		for (i=0;i<_numgeo;i++)
+			A[mA[i]] = a[i]
+	}
+	calcHKL
+	onp
+	printf("\nCalculated %s:\n", _hkl_sym2)
+	_var
+	offp
+'
+
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/temper.mac
+#
+#  @(#)temper.mac	5.2  04/08/01 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988,1989,1990,1992,1997,2001
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+#
+# Temperature macros
+#
+global  TEMP_SP         # Temperature set point (Kohms, Volts, etc.)
+global  T_LO_SP         # Set point low limit
+global  T_HI_SP         # Set point high limit
+global  DEGC_SP         # Temperature corresponding to setpoint
+
+global  TEMP_CS         # Temperature control sensor
+global  DEGC            # Measured temperature
+
+## Get temperature parameters
+#def starttemp '
+#       T_LO = getval("Lower temperature control limit", T_LO)
+#       T_HI = getval("Upper temperature control limit", T_HI)
+#'
+if (!(whatis("starttemp")&02))
+	rdef starttemp ''
+
+# Display temperature parameters
+def showtemp '
+	measuretemp
+	printf("Temperature Setpoint = %g (%gC)\n",TEMP_SP,DEGC_SP)
+	printf("            Measured = %g (%gC)\n",TEMP_CS,DEGC)
+'
+# Simple read or set temperature
+def te '
+	if ($# == 1) {
+		settemp $1
+		qcomment "Temperature Setpoint at %g" "TEMP_SP"
+	}
+	onp; showtemp; offp
+'
+def settemp '
+	if ($# != 1) {
+		print "Usage:  settemp set_point"
+		exit
+	} else {
+		local _1
+		_1 = $1
+		if (_1 < T_LO_SP || _1 > T_HI_SP) {
+			printf("Temp limits are %g to %g.\n",T_LO_SP,T_HI_SP)
+			exit
+		}
+		TEMP_SP = _1
+		_settemp
+	}
+'
+
+# Ramp the temperature.  If temp_step_size leads to sleep times less than
+# TERAMP_MIN second, a larger step size will be used to make the sleep times
+# no smaller than TERAMP_MIN second.  TERAMP_MIN is initially 0.2 second.
+# You can try smaller values, but you may find that the overhead
+# involved adds too much to the estimated total ramp time.
+# One could use time() to adjust the sleep times dynamically ...
+
+global TERAMP_MIN
+if (unset("TERAMP_MIN"))
+	TERAMP_MIN=0.2
+
+def teramp '
+	if ($# != 2 && $# != 3) {
+		print "Usage:  teramp set_point time [ temp_step_size ]"
+		exit
+	}
+	{
+	  local _i _rtime
+
+	  _s1 = TEMP_SP; _f1 = $1; _rtime = $2
+	  if (fabs(_f1 - _s1) > 1e-4) {
+		if ($# == 3) {
+		  if ((_stime = fabs($3 * _rtime / (_f1 - _s1))) < TERAMP_MIN)
+			_stime = TERAMP_MIN
+		} else
+			_stime = _rtime < 500? 2:10
+		_d1 = (_f1 - _s1) / _rtime * _stime
+		comment "Ramp Temp Setpoint %g to %g in %d seconds" \
+			"_s1,_f1,_rtime"
+		for (_i=0; _i<=_rtime; _i+=_stime, _s1 += _d1) {
+			settemp _s1
+			measuretemp
+			printf("Set=%7.4f  Meas=%7.4fC",TEMP_SP,DEGC)
+			tty_cntl("ce")
+			printf("\r")
+			sleep(_stime)
+		}
+		settemp _f1
+		printf("Set=%7.4f  Meas=%7.4fC\n\n",TEMP_SP,DEGC)
+		showtemp
+	  } else {
+		te $1
+	  }
+	}
+'
+
+# Temperature to Kohms and vice-versa
+#  Parameters obtained by fitting manufactures table of values.
+#  No representation is made as to accuracy.
+
+def TtoR_0 '{
+	local _k        # YSI 44011 (100kohm @ 25C)  20 to 120 C
+	$1 = exp(-11.2942              +5.3483e3   /(_k = ($2) + 273.15)\
+		  -1.42016e5  /(_k*_k) -1.172e7    /(_k*_k*_k))
+}'
+def RtoT_0 '{
+	local _l        # YSI 44011 (100kohm @ 25C)  20 to 120 C
+	$1 = (1/(+2.2764e-3            +2.20116e-4 *(_l = log($2))\
+		 +2.61027e-6 *_l*_l    +9.02451e-8 *_l*_l*_l) - 273.15)
+}'
+
+def TtoR_1 '{
+	local _k        # YSI 44014 (300kohm @ 25C)  20 to 120 C
+	$1 = exp(-11.1171              +5.36811e3  /(_k = ($2) + 273.15)\
+		  +6.53685e3  /(_k*_k) -3.33234e7  /(_k*_k*_k))
+}'
+def RtoT_1 '{
+	local _l        # YSI 44014 (300kohm @ 25C)  20 to 120 C
+	$1 = (1/( +2.12834e-3          +2.00785e-4 *(_l = log($2))\
+		  +1.73425e-6 *_l*_l   +1.29522e-7 *_l*_l*_l) - 273.15)
+}'
+
+def TtoR_2 '{
+	local _k        # YSI 44032 (30kohm @ 25C)   20 to 70 C
+	$1 = exp(-11.1747              +4.63571e3  /(_k = ($2) + 273.15)\
+		  -1.60975e4  /(_k*_k) -2.09707e7  /(_k*_k*_k))
+}'
+def RtoT_2 '{
+	local _l        # YSI 44032 (30kohm @ 25C)   20 to 70 C
+	$1 = (1/( +2.50423e-3          +2.39428e-4 *(_l = log($2))\
+		  +2.63071e-6 *_l*_l   +1.27215e-7 *_l*_l*_l) - 273.15)
+}'
+
+def TtoR_3 '{
+	local _k        # YSI 44006 (10kohm @ 25C)   -10 to 120 C
+	$1 = exp(-11.8427              +4.82008e3  /(_k = ($2) + 273.15)\
+		  -1.70559e5  /(_k*_k) -2.72525e6  /(_k*_k*_k))
+}'
+def RtoT_3 '{
+	local _l        # YSI 44006 (10kohm @ 25C)   -10 to 120 C
+	$1 = (1/( +2.73266e-3          +2.61386e-4 *(_l = log($2))\
+		  +3.38675e-6 *_l*_l   +1.31781e-7 *_l*_l*_l) - 273.15)
+}'
+
+#########################################################################
+#
+# Here are some sample temperature control macros for specific hardware:
+#
+#########################################################################
+#
+# Temperature macros for a Lakeshore 82C Controller    # 91C
+#
+#def inittemp '
+#        gpib_put(12,"N3M1P50I50D50W0")
+#'
+#def measuretemp '{
+#        local _s
+#        gpib_put(12,"W0")
+#        _s=gpib_get(12)
+#        TEMP_SS=substr(_s,1,6)          # substr(_s,2,6)
+#        TEMP_CS=substr(_s,9,6)          # substr(_s,11,6)
+#        RtoT_1 DEGC TEMP_CS
+#        DEGC=TEMP_CS
+#        TEMP_SP=substr(_s,17,6)         # substr(_s,20,6)
+#        RtoT_1 DEGC_SP TEMP_SP
+#        DEGC_SP=TEMP_SP
+#}'
+#def _settemp '
+#        gpib_put(12, sprintf("S%6.4f", _1))
+#'
+##########################################################################
+##
+## Temperature macros for home-made MIT Controller
+##
+#def _settemp '{
+#        local _s
+#        _s = int(32767*_1/10)
+#        gpib_put(4, sprintf("%c%c%c%c\160\200",\
+#                0x80|( _s     &0xF), 0x90|((_s>>4 )&0xF),\
+#                0xA0|((_s>>8 )&0xF), 0xB0|((_s>>12)&0xF)))
+#}'
+#
+##########################################################################
+##
+## Temperature macros for home-made Harvard Controller
+##
+#def measuretemp '
+#        TEMP_CS = gpib_get(1)/1000
+#        RtoT_0 DEGC    TEMP_CS
+#        TEMP_SP = dcb(ca_get(0, 0))/10000
+#        RtoT_0 DEGC_SP TEMP_SP
+#}'
+#def _settemp '
+#        ca_put(bcd(10000*_1), 0, 0)
+#'
+
+if (!(whatis("measuretemp")&02))
+	rdef measuretemp ''
+if (!(whatis("_settemp")&02))
+	rdef _settemp ''
+if (!(whatis("measure0")&02))
+	rdef measure0 ''
+if (!(whatis("measure1")&02))
+	rdef measure1 'measuretemp'
+if (!(whatis("measure2")&02))
+	rdef measure2 ''
+
+if (FRESH) {
+	T_LO_SP=-100
+	T_HI_SP=100
+}
+
+# end
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/file.mac
+#
+#  @(#)file.mac	5.5  10/30/06 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988-2006
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+global DATA_DIR
+
+#
+# Open a new data file.  A program called chk_file (if it exists) is run
+# to see the file exists and if it starts with the #F characters.
+# The chk_file program won't try to read a special file
+# like a tty, though.  Eventually, chk_file can be improved to check
+# existing files for the last scan number, etc.
+#
+def newfile '{
+	local   dfile, scan_num, prev
+
+	prev = DATAFILE
+	if ($# == 0)
+		dfile = getsval("\nData file", DATAFILE)
+	else
+		dfile = "$1"
+
+	if (dfile == "")
+		exit
+
+	if (dfile == "null")
+		dfile = "/dev/null"
+
+	if (!index(dfile, "/") && file_info(DATA_DIR, "-d"))
+		dfile = sprintf("%s/%s",DATA_DIR,dfile)
+
+	if ((dfile = user_filecheck(dfile)) == "")
+		exit
+
+	if (!file_info(dfile, "-r")) {
+		if (dfile == DATAFILE) {
+			printf(\
+	"Warning:  Same name as before, but file isn\'t in %s directory.\n",\
+					     index(dfile, "/")? "same":"current")
+			printf("A new version of the file will be created.\n")
+		}
+		DATAFILE="/dev/null"
+	} else if (dfile != "/dev/null") {
+		local s
+		if (file_info(s = SPECD "/chk_file", "-x"))
+			if (unix(sprintf("%s %s",s,dfile)))
+				print "Note:  file already exists."
+	}
+	#
+	if (open(dfile)) {
+		DATAFILE="/dev/null"
+		exit
+	}
+	if (dfile != "tty" && dfile != "/dev/tty")
+		close(dfile)
+
+	scan_num = $2
+	if (dfile == DATAFILE) {
+		if (open(dfile)) {
+			DATAFILE="/dev/null"
+			exit
+		}
+		if ($# == 2)
+			SCAN_N = scan_num
+	} else {
+		if ($# == 0)
+			scan_num = getval("Last scan number",scan_num)
+
+		if (prev != "" && prev != "0" && prev != "tty" && prev != "/dev/tty")
+			close(prev)
+
+		if (open(dfile)) {
+			DATAFILE="/dev/null"
+			exit
+		}
+
+		DATAFILE = dfile
+		SCAN_N = scan_num
+
+		if (SCAN_N == 0 || !file_info(DATAFILE, "-s")) {
+			constant EPOCH time()
+			fprintf(dfile, "#F %s\n", DATAFILE)
+		}
+		fprintf(dfile, "#E %d\n",EPOCH)
+		fprintf(dfile, "#D %s\n",date())
+		fprintf(dfile, "#C %s  User = %s\n",TITLE,USER)
+
+		ond; offt
+		user_filehead
+		ont; offd
+
+		local i,j,s
+		for (i=0; i<MOTORS; i+=8) {
+			s = sprintf("#O%d ", i/8)
+			for (j=i; j<i+8 && j<MOTORS;) {
+				if (motor_name(mA[j]) != "unused")
+					s = s sprintf("%8s", motor_name(mA[j]))
+				if (j%8 == 7)
+					break
+				s = s "  "
+				j++
+			}
+			fprintf(dfile, "%s\n", s)
+		}
+	}
+	printf("Using \"%s\".  Next scan is number %d.\n",DATAFILE,SCAN_N+1)
+}'
+
+# user_filecheck() lets users insert a macro to massage or test the
+# file name for newfile.
+#
+# Here is an example that enforces a six-character limit on file names
+# (the split() returns the last component if arg is a path):
+#
+# def user_filecheck(s) '{
+#    local   arr
+#
+#    if (length(arr[split(s, arr, "/") - 1]) > 7) {
+#        eprintf("Filename length must be less then seven characters.\n")
+#        return("")
+#    }
+#    return(s);
+# }'
+#
+# The default definition does nothing:
+
+def user_filecheck(s) '{return(s)}'
+
+# Let users add info at the top of the file
+def user_filehead ''
+
+
+if (unset("EPOCH"))
+	constant EPOCH time()
+
+if (unset("DATA_DIR"))
+	DATA_DIR = "./data"
+
+# Do not remove this line -- it keeps the parser from waiting for an "else".
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/energy.mac
+#
+#  @(#)energy.mac	5.4  04/12/08 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988-2003,2008
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+#########################################################################
+#
+# These macros support various monochromator configurations.  Note, that
+# the configuration is automatically determined by the presence of a
+# particular set of motor mnemonics in the "config" file, as described
+# below:
+#
+#       monu or mono                            (type 1)
+#               - selects a single-motor monochromator
+#
+#       mono, mon_y, mon_z                      (type 2)
+#               - selects a three-motor monochromator such as from Kohzu,
+#                 as used at several APS beamlines.  The g_mo_s parameter
+#                 specifies the offset.  The mono_flag parameter selects
+#                 between two configurations.  If mono_flag is zero, the
+#                 configuration is one in which the theta rotation lies along
+#                 the face of the first crystal (both mon_z and mon_y motions
+#                 are on the second crystal, where the mon_z motion is
+#                 parallel and the mon_y perpendicular to the first crystal).
+#                 If mono_flag is nonzero, the theta rotation lies along
+#                 the midpoint between the two crystals (the mon_y motion
+#                 is on the first crystal and mon_z on the second).
+#
+#
+#       monu, mond and montrav                  (type 3)
+#               - selects a three-motor monochromator that uses the
+#                 g_mo_s parameter to specify the offset between crystals
+#
+#       monu, mond, montrav and monoff          (type 4)
+#               - selects a four-motor monochromator
+#
+#       mono, monp                              (type 5)
+#               - selects a two-motor monochromator
+#
+# Global variables are:
+#
+#       mono_type
+#               - Set to 0, 1, 2, 3, 4 or 5 to indicate type of
+#                 monochromator.  If 0, there is no monochromator.
+#       mono_flag
+#               - A flag that may distinguish special features.
+#       g_mo_d
+#               - Monochromator d-spacing in Angstroms.  Can be
+#                 calculated or set using setmono macro.
+#       g_mo_s
+#               - Fixed offset between crystals for three-motor monochromator.
+#                 Can be set using setmono.
+#       xtal_ind
+#               - An array holding the miller indices of the crystal.
+#                 Not necessary to use if entering d-spacing directly.
+#       xtal_lat
+#               - Holds the lattice spacing of the crystal.  Not necessary
+#                 to use if entering d-spacing directly.  Lattices for Si
+#                 and Ge are built-in.
+#       xtal_type
+#               - Is "G" for Ge, "S" for Si, or anything else for others.
+#                 Not necessary to use if entering d-spacing directly.
+#
+# Macros included are:
+#
+#       calcM  energy_in_kev
+#               - Calculates monochromator motor positions from argument.
+#
+#       calcM_local  energy_in_kev
+#               - Called by calcM to calculate motor positions for
+#                 nonstandard monochromator motors.  Local users must
+#                 define this macro themselves.  Initially, it is defined
+#                 as a no-op macro.
+#       calcE
+#               - Calculates LAMBDA from motor positions.
+#       calcE_local
+#               - Called by calcE to allow alternative calculation of
+#                 LAMBDA.  Initially, defined as a no-op macro.
+#       getE
+#               - Displays current energy.
+#       moveE
+#               - Moves monochromator to correspond to some energy.
+#       setE
+#               - Set monochromator angles for current energy.
+#       Escan
+#               - Scans energy.
+#
+#       setmono [d] [s]
+#               - Used to enter d-spacing and offset if three-motor mono.
+#                 With no arguments, will prompt for value(s).  If 0 is
+#                 entered for d-spacing, you can enter type of crystal
+#                 and miller indices to have d-spacing calculated.
+#
+#       _chk_mlim
+#               - Checks limits on monochromator motors, used by Escan.
+#       pa_mono
+#               - Displays monochromator parameters
+#       sav_mono
+#               - Saves monochromator parameters
+#       miller
+#               - Used by setmono to calculate d-spacing from miller indices
+#       _assign_mono
+#               - Figures out which kind of monochromator from config
+#                 mnemonics.
+#
+#       mono_settings()
+#               - Macro function that returns the string name of the
+#                 file to be used to store monochromator parameters.
+
+constant hc_over_e 12.39852     # old version used prior to spec 4.04.08
+constant hc_over_e 12.39842     # J.Phys.Chem.Ref.Data, 1988, 17, 1795-1803
+
+# calcM - Set motor positions from LAMBDA.
+def calcM '{
+	local   x
+	if ($# != 1) {
+		eprint "Usage:  calcM energy_in_Kev"
+		exit
+	}
+	if (g_mo_d == 0) {
+		eprint "Run \"setmono\" to set monochromator parameters, first."
+		exit
+	}
+	if (($1) == 0 || (x = hc_over_e / (($1) * 2 * g_mo_d)) > 1) {
+		eprintf("Unreachable energy (E=%g Kev).  Minimum is %g Kev.\n",\
+			$1, hc_over_e/(2*g_mo_d))
+		exit
+	}
+	x = asin(x)
+	A[Mono] = deg(x)
+	if (mono_type == 2) {
+		A[mon_y] = g_mo_s / (2 * cos(x))
+		if (mono_flag)
+			A[mon_y] = -A[mon_y]
+		A[mon_z] = g_mo_s / (2 * sin(x))
+	}
+	if (mono_type == 3 || mono_type == 4) {
+		A[mond] = A[Mono]
+		if (mono_type == 3)
+			A[montrav] = g_mo_s / tan(2 * x)
+		else
+			A[montrav] = A[monoff] / tan(2 * x)
+	}
+	if (mono_type == 5)
+		A[monp] = g_mo_s / (2 * cos(x))
+
+	calcM_local ($1)
+}'
+# calcE - Get LAMBDA from motor positions.
+def calcE '
+	if (g_mo_d == 0) {
+		eprint "Run \"setmono\" to set monochromator parameters, first."
+		exit
+	}
+	if (mono_type == 3 || mono_type == 4) {
+	    if (A[Mono] != A[mond])
+		eprintf("Warning:  upstream mono at %g, downstream at %g.\n",\
+		    A[Mono], A[mond])
+	}
+	LAMBDA = 2 * g_mo_d * sin(rad(A[Mono]))
+	calcE_local
+'
+# getE - Print energy corresponding to current position and parameters.
+def getE '
+	waitmove; get_angles; calcE
+	if (LAMBDA == 0) {
+		eprint "LAMBDA is zero.  Please \"moveE\" or \"setE\"."
+		exit
+	}
+	printf("E = %g keV, %g Angstroms\n",hc_over_e/LAMBDA,LAMBDA)
+'
+# moveE - Move monochromator to correspond to some energy.
+def moveE '
+	if ( $# != 1) {
+		eprint "Usage:  moveE energy_in_KeV"
+		exit
+	} 
+	if (($1) <= 0) {
+		eprint "Can only deal with positive energies."
+		exit
+	}
+	waitmove; get_angles; calcM $1
+	move_em; waitmove; get_angles; calcE
+	comment "Monochromator moved to E = %g KeV" hc_over_e/LAMBDA
+'
+# setE - Set monochromator angles for to correspond to some energy.
+#         (Note:  the angles must all be saved after calcM, as the
+#         "set" macro does a get_angles, which would mess up values in A[].
+def setE '
+	if ( $# != 1) {
+		eprint "Usage:  setE energy_in_KeV"
+		exit
+	} else {
+		local   _1 _2 _3 _4 _5 _6
+
+		if (($1) <= 0) {
+			eprint "Can only deal with positive energies."
+			exit
+		}
+		waitmove; get_angles; calcM $1
+
+		_1 = A[Mono]
+		_2 = A[montrav]
+		_3 = A[mond]
+		_4 = A[mon_y]
+		_5 = A[mon_z]
+		_6 = A[monp]
+		get_angles
+		if (A[Mono] != _1) {
+			if (motor_mne(Mono) == "monu") {
+				set monu _1
+			} else {
+				set mono _1
+			}
+		}
+		if (mono_type == 2) {
+			if (A[mon_y] != _4) {
+				set mon_y _4
+			}
+			if (A[mon_z] != _5) {
+				set mon_z _5
+			}
+		}
+		if (mono_type == 3 || mono_type == 4) {
+			if (A[montrav] != _2) {
+				set montrav _2
+			}
+			if (A[mond] != _3) {
+				set mond _3
+			}
+		}
+		if (mono_type == 5) {
+			set monp _6
+		}
+		get_angles; calcE
+		comment "Monochromator set to %g KeV" hc_over_e/LAMBDA
+	}
+'
+
+# Escan - Scans energy.
+def Escan '
+	if ($# != 4 && $# != 5 || $# == 5 && "$5" != "fixQ") {
+		eprint "\
+Usage: Escan start finish intervals time [fixQ]\n\
+       (Units are KeV)\n\
+       (the literal \"fixQ\" means keep HKL constant)"
+		exit
+	} 
+
+	{ _s1 = $1; _f1 = $2; _n1 = int($3); _ctime = $4; }
+
+	if (_n1 <= 0) {
+		eprint "Number of Intervals <= 0"
+		exit
+	} 
+	if (_s1 <= 0 || _f1 <= 0) {
+		eprint "Can only deal with positive energies."
+		exit
+	}
+
+	_bad_lim = 0
+	_chk_mlim _s1
+	_chk_mlim _f1
+	if (_bad_lim) exit
+
+	HEADING = sprintf("Escan %g %g %g %g%s",$1,$2,$3,$4,$#>4?" $5":"")
+	_d1 = (_f1 - _s1) / _n1++
+	X_L = "Energy (keV)"
+	Y_L = cnt_name(DET)
+	_sx = _s1; _fx = _f1
+
+	FPRNT=sprintf("Energy  %s  ",motor_name(Mono))
+	PPRNT=sprintf("%9.9s %9.9s ", "Energy",motor_name(Mono))
+	_stype = 1|(1<<8)
+	_cols=2
+	if (mono_type == 2) {
+		FPRNT=sprintf("%s%s  ",FPRNT,motor_name(mon_y))
+		PPRNT=sprintf("%s%9.9s ",PPRNT,motor_name(mon_y))
+		_stype = 1|(2<<8)
+		_cols=3
+	}
+	if (mono_type == 3 || mono_type == 4) {
+		FPRNT=sprintf("%s%s  %s  ",FPRNT,\
+		  motor_name(montrav),motor_name(mond))
+		PPRNT=sprintf("%s%9.9s %9.9s ",PPRNT,\
+		  motor_name(montrav),motor_name(mond))
+		_stype = 1|(3<<8)
+		_cols=4
+	}
+	if (mono_type == 5) {
+		FPRNT=sprintf("%s%s  ",FPRNT,motor_name(monp))
+		PPRNT=sprintf("%s%9.9s ",PPRNT,motor_name(monp))
+		_stype = 1|(2<<8)
+		_cols=3
+	}
+	VPRNT=PPRNT
+
+	scan_head
+	def _scan_on \'
+	 {
+	   local h_ca k_ca l_ca
+	   if ("$5" == "fixQ") {
+		h_ca = H
+		k_ca = K
+		l_ca = L
+	   }
+	   for (; NPTS < _n1; NPTS++) {
+		local   E
+		get_angles
+		E = _s1 + NPTS * _d1
+		calcM E; calcE
+		if ("$5" == "fixQ") {
+			H = h_ca
+			K = k_ca
+			L = l_ca
+			calcA
+		}
+		scan_move
+		calcE; E = hc_over_e / LAMBDA
+		FPRNT=sprintf("%g %.8g ",E,A[Mono])
+		PPRNT=sprintf("%9.4f %9.4f ",E,A[Mono])
+		if (mono_type == 2) {
+		    FPRNT=sprintf("%s%.8g ",FPRNT,A[mon_y])
+		    PPRNT=sprintf("%s%9.4f ",PPRNT,A[mon_y])
+		}
+		if (mono_type == 3 || mono_type == 4) {
+		    FPRNT=sprintf("%s%.8g %.8g ",FPRNT,A[montrav],A[mond])
+		    PPRNT=sprintf("%s%9.4f %9.4f ",PPRNT,A[montrav],A[mond])
+		}
+		if (mono_type == 5) {
+		    FPRNT=sprintf("%s%.8g ",FPRNT,A[monp])
+		    PPRNT=sprintf("%s%9.4f ",PPRNT,A[monp])
+		}
+		VPRNT=PPRNT
+		scan_loop
+		scan_data(NPTS, E)
+		scan_plot
+	   }
+	 }
+	 scan_tail
+	\'
+	_scan_on
+'
+# _chk_mlim - Used by Escan in prescan motor limit checks.
+def _chk_mlim '
+	calcM $1
+	_chk_lim Mono A[Mono]
+	if (mono_type == 2) {
+		_chk_lim mon_y A[mon_y]
+		_chk_lim mon_z A[mon_z]
+	}
+	if (mono_type == 3 || mono_type == 4) {
+		_chk_lim mond A[mond]
+		_chk_lim montrav A[montrav]
+	}
+	if (mono_type == 5) {
+		_chk_lim monp A[monp]
+	}
+'
+# pa_mono - Used by "pa" to display parameters.
+def pa_mono '
+	printf("  Monochromator:\n")
+	printf("               d-spacing = %g Angstroms\n", g_mo_d)
+	if (mono_type == 2 || mono_type == 3 || mono_type == 5)
+		printf("              Separation = %g mm\n", g_mo_s)
+'
+# sav_mono - Used by "save" macro to save parameters to a file.
+def sav_mono '
+	printf("g_mo_d=%g\n",g_mo_d)
+	if (mono_type == 2 || mono_type == 3 || mono_type == 5)
+		printf("g_mo_s=%g\n",g_mo_s)
+'
+# If the default version of mono_settings(), below, needs to be changed,
+# define a version to be put in a SPECD/site.mac, SPECD/site_f.mac
+# or SPECD/SPEC/conf.mac file.
+
+# If the same platform supports different configurations with
+# separate monochromators, you want to put the monochromator
+# parameters in a file unique to the configuration.  The SPEC
+# variable contains the name of the configuration.  This first
+# instance of mono_settings() is appropriate in such a situation.
+# def mono_settings() '{
+#        return(sprintf("%s/%s/mono_settings", SPECD, SPEC))
+# }'
+
+# If the same platform supports multiple configurations that
+# use the same monochromator, you can put the parameters in a file
+# common to all configurations.
+def mono_settings() '{
+	return(sprintf("%s/mono_settings", SPECD))
+}'
+
+def read_mono(f) '{
+	local s, n, v, c
+
+	if (getline(f, "open") < 0)
+	    return(-1)
+	while ((s = getline(f)) != -1) {
+	    sscanf(s, "%*[ ]print%*[ ]\"%[^\"]", c)
+	    if (sscanf(s, "constant %s %f", n, v) == 2) {
+		print c
+		if (@n != v) {
+		    qcomment "%s reset from %g to %g" "n,@n,v"
+		    constant @n v
+		}
+	    }
+	}
+	getline(f, "close")
+	return(0)
+}'
+
+# setmono - Sets d-spacing and offset, if applicable.
+def setmono '{
+	local f, has_off, use_file
+
+	_1 = g_mo_d
+	_2 = g_mo_s
+	has_off = mono_type == 2 || mono_type == 3 || mono_type == 5
+	f = mono_settings()
+	if (!file_info(f)) {
+	    # file does not exist
+	    if (unix(sprintf("cp /dev/null %s 2>/dev/null", f))) {
+		# file cannot be created
+		eprintf("\n\
+According to the mono_settings() macro, monochromator parameters\n\
+are kept in \"%s\".\n\n\
+That file doesn\'t exist, and you don\'t have permission to\n\
+create the file.  Have the system administrator address the\n\
+permission issues.  In the meantime, the parameters will be\n\
+kept in your state file as with other global variables.\n", f);
+		use_file = 0
+	    } else
+		use_file = 1
+	} else {
+	    # file exists
+	    if (!file_info(f, "-w")) {
+		# file cannot be updated
+		eprintf("\n\
+Monochromator parameters are kept in\n\
+\"%s\".\n\n\
+You don\'t have permission to change that file.\n\
+Have the system administrator make the file writable\n\
+by you if that is appropriate.  In the meantime,\n\
+the current parameters will be read from the file.\n", f);
+		if (file_info(f, "-r")) {
+		    printf("\n")
+		    read_mono(f)
+		} else
+		    eprintf("Yikes!  %s is unreadable.\n", f)
+		use_file = -1
+	    } else
+		use_file = 1
+	}
+	if (use_file >= 0) {
+	    if ($# == 1)
+	       _1 = $1
+	    else if ($# == 2 && has_off) {
+		_1 = $1; _2 = $2;
+	    } else if ($# == 0) {
+		_1 = getval("\n\
+Enter monochromator d-spacing ... \n  or type 0 to enter crystal type",_1)
+		if (_1+0 == 0)
+		    miller
+		if (has_off)
+		    _2 = getval("\
+Enter monochromator separation in millimeters", _2)
+	    } else {
+		if (has_off)
+		    eprint "Usage:  setmono  or  setmono d [s]"
+		else
+		    eprint "Usage:  setmono  or  setmono d"
+		exit
+	    }
+
+	    if (_1 != g_mo_d || (has_off && _2 != g_mo_s)) {
+		if (use_file) {
+		    unix(sprintf("cp /dev/null %s", f))
+		    fprintf(f,"\
+# Mono parameters last changed on %s by %s\n\n\
+if (g_mo_d != %g) {\n\
+   print \"Monochromator d-spacing is %g Angstroms.\"
+   qcomment \"g_mo_d reset from %%g to %%g\" \"g_mo_d,%g\"\n\
+}\n\
+constant g_mo_d %g\n\n", date(),USER,_1,_1,_1,_1)
+		    if (has_off)
+			fprintf(f, "\
+if (g_mo_s != %g) {\n\
+   print \"Monochromator offset is %g mm.\"
+   qcomment \"g_mo_s reset from %%g to %%g\" \"g_mo_s,%g\"\n\
+}\n\
+constant g_mo_s %g\n", _2,_2,_2,_2)
+		    close(f)
+		    printf("\n")
+		    read_mono(f)
+		} else {
+		    printf("\nMonochromator d-spacing is %g Angstroms.\n",_1)
+		    qcomment "g_mo_d reset from %g to %g" "g_mo_d,_1"
+		    constant g_mo_d _1
+		    if (has_off) {
+			printf("Monochromator offset is %g mm.\n",_2)
+			qcomment "g_mo_s reset from %g to %g" "g_mo_s,_2"
+			constant g_mo_s _2
+		    }
+		}
+	    }
+	}
+}'
+# miller - Used by setmono to get d-spacing from miller indices.
+def miller '{
+	local i la m x even s s2
+
+	la = xtal_lat
+	x = xtal_type=="S"? "Si":xtal_type=="G"? "Ge":"other"
+	m[0] = xtal_ind[0]
+	m[1] = xtal_ind[1]
+	m[2] = xtal_ind[2]
+	x = substr(getval("Is your crystal Si, Ge or other",x),1,1)
+	if (x == "s") x = "S"
+	if (x == "g") x = "G"
+	if (x == "S" || x == "G") {
+		if (x == "S")
+			la = 5.4307
+		else if (x == "G")
+			la = 5.65685
+	} else
+		la=getval("Enter the crystal lattice parameter in Angstroms",la)
+	printf("Enter the Miller indices ...\n")
+	m[0] = getval("  h",m[0])
+	m[1] = getval("  k",m[1])
+	m[2] = getval("  l",m[2])
+
+	for (i = 0; i < 3; i++) {
+		m[i] = int(m[i])
+		if (!(m[i]&1))
+			even++
+		s += m[i]
+		s2 += m[i] * m[i]
+	}
+	if ((x == "S" || x == "G" || !s) && even \
+	    && (!s || s/4 != int(s/4) || even != 3)) {
+		eprintf("Sorry, that\'s a forbidden reflection.\n")
+		exit
+	}
+	_1 = la / sqrt(s2)
+	printf("That gives a d-spacing of %g Angstroms.\n", _1)
+	xtal_lat = la
+	xtal_type = x
+	xtal_ind[0] = m[0]
+	xtal_ind[1] = m[1]
+	xtal_ind[2] = m[2]
+}'
+
+global  mono_type
+global  mono_flag
+global  g_mo_d
+global  g_mo_s
+global  xtal_ind
+global  xtal_lat
+global  xtal_type
+
+# _assign_mono - Checks which monochromator, if any, is being used by
+#                looking at motor mnemonics.  If no monochromator seems
+#                to be there, mono macros are removed.
+def _assign_mono '
+  if (monu < MOTORS && motor_mne(monu) == "monu") {
+	if (motor_mne(mond) == "mond" && motor_mne(montrav) == "montrav") {
+		if (motor_mne(monoff) == "monoff")
+			constant mono_type 4
+		else
+			constant mono_type 3
+		rdef Mono \'monu\'
+	} else {
+		constant mono_type 1
+		if (motor_mne(mono) == "mono")
+			rdef Mono \'mono\'
+		else
+			rdef Mono \'monu\'
+	}
+  } else if (mono < MOTORS && motor_mne(mono) == "mono") {
+	if (motor_mne(mon_y) == "mon_y" && motor_mne(mon_z) == "mon_z")
+		constant mono_type 2
+	else if (motor_mne(monp) == "monp")
+		constant mono_type 5
+	else
+		constant mono_type 1
+	rdef Mono \'mono\'
+  } else
+	constant mono_type 0
+
+  if (mono_type == 1)
+	printf("Using macros for a single-motor monochromator.\n\n")
+  else if (mono_type == 2)
+	printf("Using macros for a three-motor monochromator (like Kohzu).\n\n")
+  else if (mono_type == 3)
+	printf("Using macros for a three-motor monochromator.\n\n")
+  else if (mono_type == 4)
+	printf("Using macros for a four-motor monochromator.\n\n")
+  else if (mono_type == 5)
+	printf("Using macros for a two-motor monochromator.\n\n")
+  #
+  if (mono_type && !whatis("calcE"))
+	eprintf("\n\
+You must start fresh (%s -f) or type \"newmac\"\n\
+to set up monochromator macros.\n", SPEC)
+  if (!mono_type) {
+	rdef setmono \'\'
+	rdef pa_mono \'\'
+	rdef sav_mono \'\'
+
+	if (is_macro("calcM")) undef calcM
+	if (is_macro("calcE")) undef calcE
+	if (is_macro("getE")) undef getE
+	if (is_macro("moveE")) undef moveE
+	if (is_macro("setE")) undef setE
+	if (is_macro("Escan")) undef Escan
+	if (is_macro("_chk_mlim")) undef _chk_mlim
+	if (is_macro("miller")) undef miller
+
+	unglobal  mono_type g_mo_d g_mo_s xtal_ind xtal_lat xtal_type
+	cdef("user_offsim", "", "getE", "delete")
+  } else {
+	cdef("user_offsim", "getE;", "getE")
+  }
+'
+_assign_mono
+
+# Support obsolete stuff for a while
+def get_E  'eprint "(get_E has been renamed getE)"; getE'
+def move_E 'eprint "(move_E has been renamed moveE)"; moveE'
+def set_E  'eprint "(set_E has been renamed setE)"; setE'
+
+# Set some default parameters when starting fresh.
+
+if (mono_type && unset("xtal_lat")) {
+	xtal_type = "S"
+	xtal_ind[0] = 1
+	xtal_ind[1] = 1
+	xtal_ind[2] = 1
+	xtal_lat = 3.13542
+
+	local f
+	if (file_info(f = mono_settings(), "-r"))
+		qdofile(f)
+}
+
+# If no geometry module defines calcA, make sure we have one
+if (!is_macro("calcA")) {
+	rdef calcA ''
+}
+# If no geometry module defines LAMBDA, make sure we have one
+if (!is_macro("LAMBDA")) {
+	global  _LAMBDA
+	rdef LAMBDA '_LAMBDA'
+}
+
+# Define calcM_local to something that eats up an argument.
+# Users may redefine to something useful.
+if (!is_macro("calcM_local")) {
+	rdef calcM_local '{local _x_; _x_=$1}'
+}
+# Similar for calcE_local, but no argument to absorb.
+if (!is_macro("calcE_local")) {
+	rdef calcE_local ''
+}
+
+# Do not remove this line -- it keeps the parser from waiting for an "else".
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/powder.mac
+#
+#  @(#)powder.mac	5.3  10/30/09 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1989,1990,1991,1992,1993,1997,2005,2009
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+#
+# Powder-scan macros
+#
+# When powder mode is turned on, all the scans will sweep the powder
+# motor (_pmot) the width (_pwid) about the current point in the scan.
+# The scalers will be gated open during the sweep.  The motors are
+# moved at the "base" rate.  The count time parameter of the scan is
+# ignored.
+#
+
+def setpowder '
+	if ("$1" == "off") {
+		rdef scan_move \'_move\'
+		rdef scan_count \'_count\'
+		comment "Powder mode off"
+	} else if ("$1" == "uni")
+		_pmotflag |= 2
+	else if ("$1" == "-uni")
+		_pmotflag &= ~2
+	else {
+		if ($# == 2) {
+			_1 = "$1"; _2 = $2; _3 = _pmotflag&2
+		} else if ($# == 0) {
+			print "Enter powder parameters:"
+			_1 = getval(" Motor to scan", motor_mne(_pmot))
+			_2 = getval(" Full width of rock in degrees", _pwid)
+			_3 = yesno(" Use unidirectional rock", _pmotflag&2)
+		} else {
+			print "Usage:  setpowder"
+			print "        setpowder off"
+			print "        setpowder [-]uni"
+			print "        setpowder motor fullwidth"
+			exit
+		}
+		local i
+		for (i=0; i<MOTORS; i++)
+			if (_1 == motor_mne(i)) {
+				_pmot = i
+				break
+			}
+		if (i == MOTORS) {
+			printf("There is no motor named \"%s\".\n", _1)
+			exit
+		}
+		_pmotflag=0
+		for (i=0; i<_numgeo; i++)
+			if (mA[i]==_pmot)
+				_pmotflag=1
+		if (_3)
+			_pmotflag |= 2
+		_pwid = _2
+		rdef scan_move \'_pmove\'
+		rdef scan_count \'_pcount\'
+		comment "Powder mode on for %s at %g degrees" \
+			"motor_mne(_pmot),_pwid"
+	}
+'
+def powder_cleanup '{
+	cdef("cleanup_once", "", "powder_setup", "delete")
+	cdef("spec_scan_tail", "", "powder_setup", "delete")
+	printf("\n")
+	ifp {
+		fprintf(PRINTER, "\n")
+	}
+	waitmove
+	get_angles
+	printf("Returning %s to %g\n", motor_mne(_pmot), _cp0)
+	ifp {
+		fprintf(PRINTER,"mv %s %g\n", motor_mne(_pmot), _cp0)
+	}
+	A[_pmot] = _cp0
+	_move
+	printf("\n")
+}'
+def powder_setup() '{
+	_cp0 = _cp
+	cdef("spec_scan_tail", "powder_cleanup;", "powder_setup")
+	cdef("cleanup_once", "powder_cleanup;", "powder_setup")
+}'
+
+def _pmove '
+	# Position at start of scan
+	if (NPTS == 0)
+		powder_setup()
+	# If motor is involved in scan, must start from nominal center
+	if (_stype&1) {
+		local i
+		for (i=0; i<_nm; i++)
+			if (_pmot == _m[i]) {
+				_cp = A[_pmot]
+				break;
+			}
+	} else if (_stype&2 && _pmotflag&1)
+		_cp = A[_pmot]
+	if (_pmotflag&2)
+		A[_pmot] = _cp - _pwid/2
+	else {
+		A[_pmot] = _cp + _pwid/2
+		_pwid = -_pwid
+	}
+	move_em; waitmove; get_angles; A[_pmot] = _cp; calcHKL
+'
+def _pcount_em '
+	user_precount
+	move_cnt
+	user_postcount
+'
+# save COUNT_TIME in case user hook macros use it
+def _pcount '{
+	COUNT_TIME = $#?($1):COUNT
+	for (;;) {
+		waitmove
+		get_angles
+		A[_pmot] += _pwid
+		_pcount_em
+		waitmove
+		get_counts
+		chk_beam
+		# only get here if no beam
+		if (!(_pmotflag&2))
+			_pwid = -_pwid
+	}
+}'
+
+global  _pmotflag       # if bit 1 set, powder motor is a geometry motor
+			# if bit 2 set, is a unidirectional scan
+
+global  _cp0            # center position at start of scan
+
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/tweak.mac
+#
+#  @(#)tweak.mac	5.3  07/11/08 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1998,2007
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+# New and improved tweak macro (Aug 30, 1998)
+# Features:
+#   will count to time or monitor at each position with optional count time
+#   can show updated moving and counting
+#   can beep after each move+count
+#   if settle-time parameter "_sleep" is set, will sleep before counting
+#   can tweak more than one motor at a time
+#   each motor can have its own direction and step size
+#   changing direction changes all motor directions
+#   changing step size of first motor, changes others maintain original ratio
+#   if PRINTER is enabled, saves start and end positions to printer
+
+
+# If you want beeping, type TW_BEEP=1.  Default is no beeping
+global  TW_BEEP
+if (unset("TW_BEEP"))
+	TW_BEEP=0
+
+# If you don't want updated counting/moving, type TW_UPDATE=0.
+global  TW_UPDATE
+if (unset("TW_UPDATE"))
+	TW_UPDATE=1
+
+# Local symbols used include:
+#   n   - intially number of arguments, then number of motors
+#   m[] - initially arguments, then motor numbers
+#   del[] - deltas for each motor
+#   dir - global tweak direction
+#   pos[] - saved start positions for final PRINTER message
+#   ctime  - optional count time
+#   dir - direction flag
+
+def tw '{
+	local   i, n, m[], del[], pos[], t, ctime, dir, d0, done
+
+	n = split("$*", m)
+	if (n < 2) {
+		print "Usage:  tw mot [mot2 ...] delta [delta2 ...] [count_time]"
+		exit
+	}
+	if (n&1)
+		ctime = m[n-1]
+	n = int(n/2)
+	for (i = 0; i < n; i++) {
+		if ((m[i] = motor_num(t = m[i])) < 0) {
+			printf("Bad motor for tweak:  %s.\n", t)
+			exit
+		}
+		del[i] = m[n+i]
+	}
+	ifp {
+		get_angles
+		t = "get_angles; fprintf(PRINTER,\"\n\")\n"
+		for (i = 0; i < n; i++) {
+		     pos[i] = A[m[i]]
+		     t = t sprintf("fprintf(PRINTER,\
+			    \"Tweaked %s from %g to %%g\n\",A[%d])\n",\
+			      motor_mne(m[i]), pos[i], m[i])
+		}
+		cdef("cleanup_once", t, "tweak")
+	}
+
+	print "Indicate direction with + (or p) or - (or n) or enter"
+	print "new step size.  Type something else (or ^C) to quit.\n\n"
+
+	t = "+"
+	dir = 1
+	for (;;) {
+	    waitmove; get_angles
+	    if (ctime) {
+		    if (!set_sim(-1) && _sleep)
+			do_sleep _sleep
+		    count_em ctime;
+		    if (!TW_UPDATE) {
+			waitcount
+			done = 1
+		    } else
+			done = 0
+		    for (;;) {
+			get_counts
+			for (i = 0; i < n; i++)
+			    printf("%s = %.3f, ", motor_mne(m[i]), A[m[i]])
+			if (ctime < 0)
+			    printf("%s = %g, ", cnt_mne(sec), S[sec])
+			else if (MON >= 0)
+			    printf("%s = %g, ", cnt_mne(MON), S[MON])
+			printf("%s = %g, ", cnt_mne(DET), S[DET])
+			tty_cntl("ce")
+			if (done)
+			    break
+			sleep(UPDATE)
+			printf("\r")
+			done = !chk_count
+		    }
+	    } else
+		    for (i = 0; i < n; i++)
+			printf("%s = %.3f, ", motor_mne(m[i]), A[m[i]])
+	    if (TW_BEEP) beep
+	    t = getval("which way", t)
+	    if (t+0 != 0) {
+		    d0 = fabs(t / del[0])
+		    for (i = 0; i < n; i++)
+			del[i] *= d0
+		    t = t<0? "-":"+"
+	    }
+	    if (t == "+" || t == "p")
+		    dir = 1
+	    else if (t == "-" || t == "n")
+		    dir = -1
+	    else
+		    break
+	    for (i = 0; i < n; i++)
+		    A[m[i]] += dir * del[i]
+	    move_em
+	    if (!TW_UPDATE) {
+		    waitmove
+	    } else for (done = 0;;) {
+		    get_angles
+		    for (i = 0; i < n; i++)
+			printf("%s = %.3f, ", motor_mne(m[i]), A[m[i]])
+		    tty_cntl("ce")
+		    printf("\r")
+		    if (done)
+			break
+		    sleep(UPDATE)
+		    done = !chk_move
+	    }
+	}
+	cdef("cleanup_once", "", "tweak", "delete")
+	ifp {
+		for (i = 0, t = "\n"; i < n; i++)
+			t = t sprintf("Tweaked %s from %g to %g\n", \
+				motor_mne(m[i]), pos[i], A[m[i]])
+		fprintf(PRINTER, t)
+	}
+}'
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/region.mac
+#
+#  @(#)region.mac	5.1  01/29/01 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1990,1993,1997
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+global  _reg_n          # number of regions
+global  _reg_s          # starting values (array)
+global  _reg_f          # finishing values (array)
+global  _reg_i          # number of intervals (array)
+global  _reg_t          # count times (array)
+global  _reg_scan       # string name of scan (e.g., "ascan th")
+
+def setreg '{
+	local i
+
+	_reg_scan = getval("\nWhat is the basic scan",_reg_scan)
+	rdef _rscan _reg_scan
+
+	_reg_n = getval("Scan how many regions",_reg_n)
+
+	for (i=0;i<_reg_n;i++) {
+		printf("Enter parameters for region %d:\n", i+1)
+		_reg_s[i] = getval("  Start", _reg_s[i])
+		_reg_f[i] = getval("  End", _reg_f[i])
+		_reg_i[i] = getval("  Intervals", _reg_i[i])
+		_reg_t[i] = getval("  Count time", _reg_t[i])
+	}
+}'
+
+# In the loop below, we can't use _i as the loop variable name,
+# since we are using the loop variable as an argument, and the
+# substitution in the macro will cause a name conflict.
+def doreg '{
+	local r_i
+	for (r_i=0;r_i<_reg_n;r_i++) {
+		_rscan _reg_s[r_i] _reg_f[r_i] _reg_i[r_i] _reg_t[r_i]
+	}
+}'
+
+if (unset("_reg_scan")) {
+	_reg_scan="Escan"
+}
+
+# Do not remove this line
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/getscan.mac
+#
+#  @(#)getscan.mac	5.3  10/02/10 CSS
+#
+#  "Spec" Release 5
+#  (c) Copyright 1991,1992,1993,1997,2001,2010
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+# Here is a macro to read in a scan from a spec data file
+# It uses the "scans" utility.
+
+def getscan '
+	if ($# == 1)
+		_2 = $1
+	else if ($# == 4) {
+		_1 = "$1"; _2 = $2; _3 = $3; _4 = $4
+	} else if ($# == 0) {
+		_1 = getsval("\nName of scan file", GS_file)
+		_2 = getval("Scan number", GS_scan)
+		_3 = getval("Column for x", GS_xcol)
+		_4 = getval("Column for y", GS_ycol)
+	} else {
+		print "Usage:  getscan file_name scan_number x_col y_col"
+		print "        getscan scan_number"
+		print "        getscan"
+		exit
+	}
+	GS_file = _1; GS_scan = _2; GS_xcol = _3; GS_ycol = _4
+
+	if (unix(sprintf("scans +q -esdn -f %s x=%d y=%d %d >gs.tmp",\
+				GS_file, GS_xcol, GS_ycol, GS_scan))) {
+		exit
+	}
+	printf("Read %d points.\n",NPTS=scan_read("gs.tmp"))
+	LDT = NPTS - 1
+	T_L = sprintf("Scan %d", GS_scan)
+	unix("rm -f gs.tmp")
+'
+
+global  GS_file
+global  GS_scan
+global  GS_xcol
+global  GS_ycol
+
+if (FRESH) {
+	GS_file = "data"
+	GS_scan = 1
+	GS_xcol = 1
+	GS_ycol = -1
+}
+
+# Do not remove this line -- it keeps the parser from waiting for an "else".
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/cplot.mac
+#
+#  @(#)cplot.mac	5.2  09/21/01 CSS
+#
+#  "Spec" Release 5
+#  Copyrighted as an unpublished work.
+#  Copyright (c) 1991,1992,1993,2001 Certified Scientific Software.
+#  All rights reserved.
+#
+#########################################################################
+
+global CP_FILTER        # The cplot filter
+
+if ((whatis("CP_FILTER")>>16)&0x0800)
+	CP_FILTER="psfilter"            # assign a default
+
+# Simple macro to plot the current data.  The raw data is plotted.
+# A C-PLOT command file is written in a file called cplot.tmp.
+# The cplot program is then run using that file as input.
+# (One could use scans.4 to do normalization, etc.)
+# (Two backslashes are necessary to produce one in the output file.)
+
+# We need to be able to work with the macros both in plot.mac and
+# in plotarray.mac.  If using plot.mac, we need a dummy version of
+# plot_defaults().
+
+if (!plot_with_arrays)
+	rdef plot_defaults() \'{}\'
+
+def cplot_plot '{
+	close("cplot.tmp")
+	unix("rm -f cplot.tmp")
+	on("cplot.tmp"); offt
+	printf("zi %s\n", CP_FILTER)
+	printf("re\n")
+	printf("ft 2\n")
+	printf("sy L\n")
+	printf("tu 1\n")
+	printf("wi 3 9 14 12\n")
+	printf("tx\n")
+	 printf("File %s, %s\n",DATAFILE,T_L)
+	 printf("%s\n",X_L)
+	 printf("\n")
+	 printf("%s\n",Y_L)
+	 printf("\n")
+
+	printf("zeqw\n")
+	printf("gd 1\n")
+	pts $*
+	printf("^D\n")
+
+	printf("zapltd\n")
+	printf("sy 0\n")
+	printf("zp\n")
+
+	printf("wi 9\n")
+	printf("zn 2 2\n")
+	printf("\\s%s\\l\n", HEADING);
+	printf("^D\n")
+
+	printf("zn 0 20\n")
+
+	if (plot_with_arrays) {
+	  plot_defaults($#,"$1","$2","$3","$4")
+	  printf("\\C%s\n", sdata_res_s1(@pl_a,pl_x,pl_y,pl_n,pl_type));
+	  printf("\\C\\d%s\n", sdata_res_s2(@pl_a,pl_x,pl_y,pl_n,pl_type));
+	} else {
+	  _pl_arg $*
+	  printf("\\C%s\n", splot_res1);
+	  printf("\\C\\d%s\n", splot_res2);
+	}
+
+	printf("^D\n")
+
+	printf("zs\n")
+	printf("ex\n")
+	ont; close("cplot.tmp")
+	unix("(cplot cplot.tmp; rm -f cplot.tmp) >/dev/null 2>&1 &")
+}'
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/plotarray.mac
+#  @(#)plotarray.mac	5.12  01/29/08 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988-2003,2006,2007,2008
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#  (Based on ESRF BLISS macros.  See http://www.esrf.eu/blissdb/macros/.)
+#
+#########################################################################
+
+constant plot_with_arrays 1
+
+# Global variables used by these macros:
+
+global  SCAN_D          # A data-type array that holds data from scans.
+			#  Each row is a data point.  The columns hold
+			#  "motors", then "counters"
+global  SCAN_B          # Laid out as SCAN_D, but can hold background-
+			#  subtracted version of data.
+global  LDT             # Index number of last data point.  Set by
+			#  scan_data() macro.
+global  PLOT_MOTS       # Max number of independent variables (motors)
+			#  stored in columns of data array.
+global  PLOT_CNTRS      # Number of counters to plot.
+global  PLOT_CNTRS_MAX  # Max number of counters to include in array
+global  PLOT_NUM        # Number of dependent variables (scalers)
+			#  stored in columns of data array (after "motors").
+global  PLOT_MNE[]      # Holds mnemonics associated with columns of SCAN_D.
+global  PLOT_SEL[]      # Holds mnemonics for columns user wants to plot.
+global  PL_A            # String name of array, either SCAN_D or SCAN_B.
+global  PL_X            # Array column number for x.
+global  PL_Y            # Array column number(s) for y.
+global  PL_Y1           # one element for y.
+global  pl_a            # String name of an array to plot, used internally.
+global  pl_x            #
+global  pl_y
+global  pl_n
+global  pl_type
+global  PLOT_MODE
+global  splot_col       # String list of color numbers for splot.
+global  rplot_col       # String list of color numbers for rplot.
+
+global  BG              # holds flag for background plotting.
+global  bg_m            # slope of background.
+global  bg_yI           # y-intercept of background.
+global  bg_pts          # number of endpoints to average on each side.
+global  BG_OXEL
+global  BG_OYELS
+
+def resize_scan_data() '{
+	local   rows, cols
+
+	if ((rows = array_op("rows",SCAN_D)) <= 0)
+		return(-1)
+	if ((cols = array_op("cols",SCAN_D)) <= 0)
+		return(-1)
+
+	eprintf("Warning:  SCAN_D array is growing to %d rows.\n",rows+1024)
+
+	{
+		local   array old[rows][cols]
+		old = SCAN_D
+		SHARED_SCAN_D array SCAN_D[rows+1024][cols]
+		SCAN_D = old
+	}
+	return(0)
+}'
+
+
+# This function is called from the scans to store the data of interest
+def scan_data(pno, x, counts) '{
+	global LDT
+	local i,j,cols,rows
+
+	rows = array_op("rows",SCAN_D)
+	cols = array_op("cols",SCAN_D)
+	if (pno >= rows) {
+		if (resize_scan_data())
+			return
+	}
+	SCAN_D[LDT = pno][0] = x
+	if (PLOT_NUM == 0)
+		SCAN_D[pno][1] = S[DET]
+	else for (i=0, j=PLOT_MOTS; i<PLOT_CNTRS && j<cols; i++, j++)
+		SCAN_D[pno][j] = S[i]
+}'
+
+# Used in getscan.mac
+def scan_read(filename) '{
+	return array_read(filename, SCAN_D)
+}'
+
+# Display information about counter configuration
+def show_counters() '{
+	local   i j s
+
+	printf("\nCurrent counter configuration:\n\n")
+	printf("Num  Mnemonic  Plot\n")
+
+	for (i = 0; i < COUNTERS; i++) {
+		s = "NO"
+		for (j = 0; j < PLOT_NUM; j++)
+			if (cnt_num(PLOT_SEL[j]) == i) {
+				s = "YES"
+				break
+			}
+		printf("%3d  %8s  %4s", i, cnt_mne(i), s)
+		if (i == MON)
+		      printf("  (is MON)")
+		if (i == DET)
+		      printf("  (is DET)")
+		if (counter_par(i, "disable"))
+		      printf("  (Disabled)")
+		print
+	}
+	if (MON < 0 || DET < 0 || DET >= COUNTERS) {
+		print
+		if (MON < 0)
+			printf("Monitor counter is disabled.\n")
+		if (DET < 0 || DET >= COUNTERS)
+			printf("Bad value for DET (%d).\n", DET)
+	}
+}'
+
+# Used internally by "counters" and "plot_select"
+def _plotselect() '{
+	local i j v s tmp[]
+
+	show_counters()
+	if (PLOT_NUM) {
+		for (i = 0; i < PLOT_NUM; i++) {
+			if ((v = cnt_mne(cnt_num(PLOT_SEL[i]))) == "?")
+				continue
+			if (s == "")
+				s = v
+			else
+				s = s " " v
+		}
+	}
+	if (s == "")
+		s = "none"
+	v = getval("\nCounters to plot", s)
+
+	# Convert to mnemonics, if given as numbers, reject unknowns
+	PLOT_NUM = split(v, tmp)
+	for (i = j = 0; i < PLOT_NUM; i++) {
+		if ((v = cnt_mne(cnt_num(tmp[i]))) == "?") {
+			continue
+		}
+		PLOT_SEL[j++] = v
+	}
+	PLOT_NUM = j
+	plotlist()
+
+	DET = cnt_num(v = getval("Counter for DET",\
+						cnt_mne(i = DET)))
+	if (DET < 0 || DET >= COUNTERS) {
+		printf("Channel %s invalid for detector.\n", v)
+		DET = i
+	}
+	MON = cnt_num(v = getval("Counter for MON, -1 disables",\
+				     MON<0? MON:cnt_mne(i = MON)))
+	if ((v != -1 && MON < 0) || MON >= COUNTERS) {
+		printf("Channel %s invalid for monitor.\n", v)
+		MON = i
+	}
+	if (MON >= 0 && counter_par(MON, "monitor?"))
+		counter_par(MON, "monitor")
+}'
+
+def plotselect '{  	
+	_plotconfig()
+	if ($#) {
+		PLOT_NUM = split("$*",PLOT_SEL)
+		plotlist()
+	} else
+		_plotselect()
+}'
+
+def counters '{
+	if ($# == 2) {
+		local   v
+
+		v = $1
+		if (v >= COUNTERS)
+			printf("Channel %d out of range for monitor.\n", v)
+		else {
+			MON = v
+			if (MON >= 0 && counter_par(MON, "monitor?"))
+				counter_par(MON, "monitor")
+		}
+		v = $2
+		if (v < 0 || v >= COUNTERS)
+			printf("Channel %d out of range for detector.\n", v)
+		else
+			DET = v
+		show_counters()
+	} else
+		_plotselect()
+}'
+
+# _plotconfig() will be called after rereading config file to
+# adjust SCAN_D array for possibly changed number of scalers.
+
+def _plotconfig() '{
+	local   i, j, oldrows, oldcols
+	global  PLOT_MNE PLOT_SEL PLOT_NUM PLOT_MOTS
+
+	if ((oldrows = array_op("rows",SCAN_D)) < 0)
+		oldrows = 0
+	if ((oldcols = array_op("cols",SCAN_D)) < 0)
+		oldcols = 0
+
+	if (unset("PLOT_MOTS"))
+		PLOT_MOTS = 1
+
+	if (PLOT_NUM == 0) {
+		PLOT_SEL[0] = cnt_mne(DET)
+		PLOT_NUM = 1
+	}
+	if (COUNTERS <= PLOT_CNTRS_MAX)
+		PLOT_CNTRS = COUNTERS
+	else
+		PLOT_CNTRS = PLOT_CNTRS_MAX
+
+	if (PLOT_CNTRS + PLOT_MOTS == oldcols) {
+		local same
+
+		for (same = 1, i = 0, j = PLOT_MOTS; i < PLOT_CNTRS; i++, j++)
+			if (cnt_mne(i) != PLOT_MNE[j]) {
+				same = 0
+				break
+			}
+		if (j in PLOT_MNE)
+			same = 0
+		if (same)
+			return
+	}
+
+	if (oldrows && oldcols) {
+		local   newc, newm
+		local   array   olddata[oldrows][oldcols]
+
+		olddata = SCAN_D
+		SHARED_SCAN_D array SCAN_D[oldrows][PLOT_CNTRS + PLOT_MOTS]
+		SCAN_D[][0] = olddata[][0]
+		for (i=0; i<oldcols; i++)
+			if ((newc = cnt_num(PLOT_MNE[i])) != -1) {
+				if (newc >= PLOT_CNTRS_MAX)
+					continue
+				SCAN_D[][newc+PLOT_MOTS] = olddata[][i]
+			} else if ((newm = motor_num(PLOT_MNE[i])) != -1)
+				SCAN_D[][newm] = olddata[][i]
+	} else {
+		if (oldrows == 0)
+			oldrows = 4096
+		SHARED_SCAN_D array SCAN_D[oldrows][PLOT_CNTRS + PLOT_MOTS]
+	}
+
+	for (i in PLOT_MNE)
+	     delete PLOT_MNE[i]
+	for (i = 0; i < PLOT_CNTRS; i++)
+		PLOT_MNE[i + PLOT_MOTS] = cnt_mne(i)
+
+	plotlist()
+
+	cdef("config_mac", "_plotconfig();", "PLOT2")
+}'
+
+# Check that PLOT_SEL[] counters to plot are valid
+# Set the PL_Y1 string (which is the counter used in plot results)
+# Return
+
+def plotlist() '{
+	local i j cols s mne
+
+	cols = array_op("cols", SCAN_D)
+	PL_Y1 = ""
+
+	for (i = j = 0; i < PLOT_NUM; i++) {
+		if ((mne = cnt_num(PLOT_SEL[i])) < 0)
+			delete PLOT_SEL[i]
+		else
+			PLOT_SEL[j++] = cnt_mne(cnt_num(mne))
+	}
+	PLOT_NUM = j
+	for (i = 0; i < PLOT_NUM; i++) {
+		if ((mne = cnt_num(PLOT_SEL[i])) < 0)
+			continue
+		for (j = 0; j < cols; j++ )
+			if (cnt_num(PLOT_MNE[j]) == mne) {
+				if (PL_Y1 == "") {
+					PL_Y1 = j
+					s = j
+				} else
+					s = s "," j
+				break
+			}
+	}
+	return(PL_Y = s)
+}'
+
+
+def sdata_plot(arr, x, y, n) '{
+	array_plot(arr[n][x],arr[n][y])
+}'
+
+def sdata_dump(arr, x, y, n) '{
+	local elements; elements = sprintf("%d,%s",x,y)
+	array_dump(arr[n][elements])
+}'
+
+# define analysis macros in terms of primary or background plot group
+
+def arr__xMAX(a,x,y,n)  '{ return a[ array_op("rmax", a[n][y]) ][x] }'
+def arr__xMIN(a,x,y,n)  '{ return a[ array_op("rmin", a[n][y]) ][x] }'
+def arr__MAX(a,x,n)     '{ return array_op(    "max", a[n][x]) }'
+def arr__MIN(a,x,n)     '{ return array_op(    "min", a[n][x]) }'
+def arr__FWHM(a,x,y,n)  '{ return array_op(   "fwhm", a[n][x], a[n][y]) }'
+def arr__CFWHM(a,x,y,n) '{ return array_op(  "cfwhm", a[n][x], a[n][y]) }'
+def arr__COM(a,x,y,n)   '{ return array_op(    "com", a[n][x], a[n][y]) }'
+def arr__SUM(a,x,n)     '{ return array_op(    "sum", a[n][x]) }'
+def arr__SUMSQ(a,x,n)   '{ return array_op(  "sumsq", a[n][x]) }'
+def arr__LHMX(a,x,y,n)  '{ return array_op(  "lhmx", a[n][x], a[n][y]) }'
+def arr__UHMX(a,x,y,n)  '{ return array_op(  "uhmx", a[n][x], a[n][y]) }'
+
+def pl_MIN   'arr__MIN  (@PL_A, PL_Y, sprintf("0:%d",LDT))'
+def pl_MAX   'arr__MAX  (@PL_A, PL_Y, sprintf("0:%d",LDT))'
+def pl_xMIN  'arr__xMIN (@PL_A, PL_X, PL_Y1, sprintf("0:%d",LDT))'
+def pl_xMAX  'arr__xMAX (@PL_A, PL_X, PL_Y1, sprintf("0:%d",LDT))'
+def pl_SUM   'arr__SUM  (@PL_A, PL_Y, sprintf("0:%d",LDT))'
+def pl_SUMSQ 'arr__SUMSQ(@PL_A, PL_Y, sprintf("0:%d",LDT))'
+def pl_FWHM  'arr__FWHM (@PL_A, PL_X, PL_Y1, sprintf("0:%d",LDT))'
+def pl_CFWHM 'arr__CFWHM(@PL_A, PL_X, PL_Y1, sprintf("0:%d",LDT))'
+def pl_COM   'arr__COM  (@PL_A, PL_X, PL_Y1, sprintf("0:%d",LDT))'
+def pl_MINX  'arr__MIN  (@PL_A, PL_X, sprintf("0:%d",LDT))'
+def pl_MAXX  'arr__MAX  (@PL_A, PL_X, sprintf("0:%d",LDT))'
+def pl_LHMX  'arr__LHMX (@PL_A, PL_X, PL_Y1, sprintf("0:%d",LDT))'
+def pl_UHMX  'arr__UHMX (@PL_A, PL_X, PL_Y1, sprintf("0:%d",LDT))'
+
+def CEN  'pl_CFWHM'     # folks are used to this name
+
+# these analysis macros use the local pl_g, pl_x and pl_y values
+def ap__MIN    'arr__MIN(  arr, pl_y1, pl_n1)'          # min y
+def ap__MAX    'arr__MAX(  arr, pl_y1, pl_n1)'          # max y
+def ap__xMIN   'arr__xMIN( arr, pl_x1, pl_y1, pl_n1)'   # x at min y
+def ap__xMAX   'arr__xMAX( arr, pl_x1, pl_y1, pl_n1)'   # x at max y
+def ap__SUM    'arr__SUM(  arr, pl_y1, pl_n1)'          # sum of y values.
+def ap__SUMSQ  'arr__SUMSQ(arr, pl_y1, pl_n1)'          # sum of y * y
+def ap__FWHM   'arr__FWHM( arr, pl_x1, pl_y1, pl_n1)'   # full wid half max
+def ap__CFWHM  'arr__CFWHM(arr, pl_x1, pl_y1, pl_n1)'   # center of FWHM
+def ap__COM    'arr__COM(  arr, pl_x1, pl_y1, pl_n1)'   # center of mass
+def ap__MINX   'arr__MIN(  arr, pl_x1, pl_n1)'          # min x
+def ap__MAXX   'arr__MAX(  arr, pl_x1, pl_n1)'          # max x
+def ap__LHMX   'arr__FWHM( arr, pl_y1, pl_n1)'          # lower half-max of x
+def ap__UHMX   'arr__FWHM( arr, pl_y1, pl_n1)'          # upper half-max of x
+
+def pts '{
+	plot_defaults($#,"$1","$2","$3","$4")
+	if (pl_type && BG)
+	    do_bg(SCAN_D, pl_x, pl_y, NPTS)
+	sdata_dump(@pl_a,pl_x,pl_y,pl_n)
+}'
+
+def ong  'plot_cntl("open")'            # Turn on high res graphics
+def offg 'plot_cntl("close")'           # Turn off high res graphics
+def zx   'ong;input("Hit return ... ");offg'
+
+# Macros to print results of "analysis" of previous scan
+def plot_res '{
+	plot_defaults($#,"$1","$2","$3","$4")
+	if (pl_type && BG)
+		do_bg(SCAN_D, pl_x, pl_y, NPTS)
+	p
+	p sdata_res_p1(@pl_a, pl_x, pl_y, pl_n)
+	p sdata_res_p2(@pl_a, pl_x, pl_y, pl_n)
+	p _elapsed(TIME_END - TIME)
+}'
+
+# splot macro prints two lines at top of plot.  Each should be less
+# than 50 characters in length.
+
+def sdata_res_s1(arr, pl_x1, ycols, pl_n1, pl_tp) '{
+	local pl_y1; sscanf(ycols,"%d",pl_y1)
+	local idstr; if (pl_tp) idstr = PLOT_MNE[pl_y1] ": "
+	return sprintf("%sPeak at %.5g%s is %.5g.  COM at %.5g%s.   ",\
+		idstr,ap__xMAX,UL,ap__MAX,ap__COM,UL)
+}'
+
+def sdata_res_s2(arr, pl_x1, ycols, pl_n1, pl_tp) '{
+	local pl_y1; sscanf(ycols,"%d",pl_y1)
+	return sprintf("FWHM is %.5g%s at %.5g%s.   ",\
+		ap__FWHM,UL,ap__CFWHM,UL)
+}'
+
+def sdata_res_r1(arr, pl_x1, ycols, pl_n1, pl_tp) '{
+	local c; c = PLOT_MODE&128? 80:COLS
+	local pl_y1; sscanf(ycols,"%d",pl_y1)
+	local idstr; if (pl_tp) idstr = PLOT_MNE[pl_y1] ": "
+	return sprintf("%*.*s",c-9,c-9,sprintf(\
+	  "%sPeak @ %.5g%s is %.5g  COM @ %.5g%s  FWHM is %.5g%s @ %.5g%s",\
+	  idstr, ap__xMAX,UL,ap__MAX,ap__COM,UL,ap__FWHM,UL,ap__CFWHM,UL))
+}'
+
+def sdata_res_p1(arr, pl_x1, ycols, pl_n1) '{
+	local pl_y1; sscanf(ycols,"%d",pl_y1)
+	return sprintf("Peak at %g%s is %g   COM at %g%s   FWHM is %g%s at %g%s",\
+		ap__xMAX,UL,ap__MAX,ap__COM,UL,ap__FWHM,UL,ap__CFWHM,UL)
+}'
+
+def sdata_res_p2(arr, pl_x1, ycols, pl_n1) '{
+	local c; c = PLOT_MODE&128? 80:COLS
+	local pl_y1; sscanf(ycols,"%d",pl_y1)
+	return  sprintf("Sum = %g  Ave.Mon./Time = %g  Ave.Temp. = %gC",\
+		ap__SUM,NPTS?MT_AV/NPTS:0,NPTS?T_AV/NPTS:0)
+}'
+
+# Simple 132-column plot for printer, includes form feeds and header
+def lp_plot '
+	if (NPTS > 22) formfeed
+	printf("\n%-8s   %s   file = %s  %s\n%s\n\n",\
+		T_L,DATE,DATAFILE,TITLE,HEADING)
+	plot_range("auto","auto",YMIN,"auto")
+	printf("   # %12.12s %12.12s", X_L, Y_L)
+	{
+		plot_cntl("lp");
+		plot_defaults($#,"$1","$2","$3","$4")
+		if (pl_type && BG)
+			do_bg(SCAN_D, pl_x, pl_y, NPTS)
+		sdata_plot (@pl_a,pl_x,pl_y,pl_n)
+	}
+'
+
+# A little macro to print elapsed time of a scan.
+def _elapsed(t) '{
+	local h, m, s, r
+
+	if (h = int(t/3600))      r = r sprintf("%d hour  ",h)
+	if (m = int((t%3600)/60)) r = r sprintf("%d minute  ",m)
+	if (s = t%60)             r = r sprintf("%d second",s)
+	return(r)
+}'
+
+def plot_defaults(num_args,p1,p2,p3,p4) '{
+	local k _p
+	global PL_A pl_a pl_x pl_y pl_n pl_type
+	pl_x = PL_X
+	pl_y = PL_Y
+	pl_t = T_L
+	pl_xl = X_L
+	pl_yl = Y_L
+	if (num_args && whatis(p1)&0x10000) {     # data array
+		pl_t = pl_a = p1
+		pl_n = ":-1"
+		pl_type = 0
+		if (num_args > 1) {
+			pl_x = _deref(p2)
+			if (num_args > 2) {
+				pl_y = _deref(p3)
+				if (num_args > 3)
+					pl_n = _deref(p4)
+			}
+		}
+		pl_xl = "Col_" pl_x
+		pl_yl = "Col_" pl_y
+	} else {
+		pl_type = 1
+		PL_A = pl_a = BG? "SCAN_B":"SCAN_D"
+		pl_n = LDT
+		if (num_args == 1) {
+			pl_y = _deref(_plot_replacemne(p1))
+			pl_yl = p1
+		} else if (num_args > 1) {
+			pl_x = _deref(_plot_replacemne(p1))
+			pl_y = _deref(_plot_replacemne(p2))
+			pl_yl = p2
+			if (num_args > 2)
+				pl_n = _deref(p3)
+		} else {
+			local i
+			for (i=0, pl_yl="" ; i < PLOT_NUM; i++)
+				pl_yl = pl_yl " " PLOT_SEL[i]
+		}
+	}
+
+	if (index(pl_n,":") == 0 && index(pl_n,",") == 0)
+		pl_n = ":" pl_n
+
+	return pl_type
+}'
+
+""" Convert counter mnemonic to index into PLOT_MNE[] """
+def _plot_replacemne(str) '{
+	local i, j, n, m, s[], r
+
+	m = split(str, s)
+	n = array_op("cols", @pl_a)
+	r = ""
+	for (j=0; j<m; j++) {
+	  for (i=0; i<n; i++)
+	    if (s[j] == PLOT_MNE[i])
+		s[j] = i
+	  r = r s[j] " "
+	}
+	return r
+}'
+
+def _deref(str) '{
+	local wis; wis = whatis(str)
+	if (wis&0x4 && wis&0x300000)    # symbol && number or string
+		return @str
+	else
+		return str
+}'
+ 
+# The splot macro draws a screen or high-res plot of the data points
+# from a scan.  The screen plot should work even if the terminal
+# has no cursor addressing, as the plot_move()
+# functions become no-ops and the internal plotting code will
+# draw a lp-type plot.
+
+# [array] [x_col] [y_col] [no pts] 
+# Uses global: X_L Y_L T_L PLOT_MODE BG YMIN splot_col
+def splot '{
+        if (PLOT_MODE&128) {
+		plot_cntl(sprintf("colors=%s",splot_col))
+		plot_cntl("open")
+	}
+        plot_defaults($#,"$1","$2","$3","$4")
+
+		plot_cntl("erase")
+		plot_cntl(PLOT_MODE&8? "xexact":"-xexact")
+		plot_cntl(PLOT_MODE&32? "ylog":"-ylog")
+		plot_cntl(PLOT_MODE&256? "-dots":"dots")
+		plot_cntl(PLOT_MODE&512? "-lines":"lines")
+		plot_cntl(PLOT_MODE&1024? "-ebars":"ebars")
+		plot_range("auto","auto",YMIN,"auto")
+		if (pl_type && BG)
+		  do_bg(SCAN_D, pl_x, pl_y, NPTS)
+		plot_move(0,1,pl_t)
+		plot_move(0,2,pl_yl)
+		plot_move(0,-1,sprintf("%.8s", pl_xl))
+
+
+	sdata_plot(@pl_a,pl_x,pl_y,pl_n)
+	plot_move(-50,0,sdata_res_s1(@pl_a,pl_x,pl_y,pl_n,pl_type))
+	plot_move(-50,1,sdata_res_s2(@pl_a,pl_x,pl_y,pl_n,pl_type))
+	plot_move(0,3)
+}'
+
+# [array] [x-elem] [y-elem] [no-pts] [erase-flag] 
+# Uses global: X_L Y_L T_L _sx _sy PLOT_MODE YMIN rplot_col
+def rplot '{
+	if (PLOT_MODE&128) {
+		plot_cntl(sprintf("colors=%s",rplot_col))
+		plot_cntl("open")
+	}
+        plot_defaults($#,"$1","$2","$3","$4")
+	PL_A = pl_a = "SCAN_D"
+	if ((_stype&8? _g1:NPTS) == 0 || $5) {
+		plot_cntl("erase")
+		plot_cntl(PLOT_MODE&8? "xexact":"-xexact")
+		plot_cntl(PLOT_MODE&32? "ylog":"-ylog")
+		plot_cntl(PLOT_MODE&256? "-dots":"dots")
+		plot_cntl(PLOT_MODE&512? "-lines":"lines")
+		plot_cntl(PLOT_MODE&1024? "-ebars":"ebars")
+		plot_range(_sx,_fx,YMIN,"auto")
+
+
+		plot_move(0,1,pl_t)
+		plot_move(0,2,pl_yl)
+		plot_move(0,-1,sprintf("%.8s", pl_xl))
+	}
+	plot_cntl("addpoint")
+	sdata_plot(@pl_a,pl_x,pl_y,pl_n)
+	plot_move(9,2,sdata_res_r1(@pl_a,pl_x,pl_y,pl_n,pl_type))
+
+	plot_move(0,0)
+}'
+
+# Choices (add values together for single mode):
+#    0  =  No plots
+#    1  =  Updated screen plot
+#    2  =  Final screen plot
+#    4  =  LP plot
+#    8  =  Force x-axis min and max to scan min and max
+#   16  =  Force y-axis minimum to zero
+#   32  =  Use logarithmic y axis
+#   64  =  Use background subtraction analysis (barely supported feature)
+#  128  =  Use highres graphics
+#  256  =  Don't draw highres dots
+#  512  =  Don't draw highres lines
+# 1024  =  Don't draw error bars
+# 2048  =  Plot all elements of data group
+def setplot '{
+	if ($# > 1) {
+		eprint "Usage:  setplot  or  setplot mode"
+		exit
+	}
+	if ($# == 1) {
+		local   t
+		t = substr("$1",1,1)
+		if (t == "+")
+			_1 = PLOT_MODE+substr("$1",2)
+		else if (t ==  "-")
+			_1 = PLOT_MODE-substr("$1",2)
+		else
+			_1 = $1
+		if (_1 < 0 || _1 > 4095) {
+			eprint "Valid modes are from 0 to 4095 (0xFFF)."
+			exit
+		}
+	}
+	if ($# == 0) {
+	    local   string array modes[12][40]
+
+	    modes[0]  = "Do real-time screen plots during scans"
+	    modes[1]  = "Do screen plot after scan"
+	    modes[2]  = ""
+	    modes[3]  = "Range x axis with scan min and max"
+	    modes[4]  = "Force y-axis minimum to zero"
+	    modes[5]  = "Use logarithmic y-axis"
+	    modes[6]  = "Do background subtraction for plots"
+	    modes[7]  = "Use high resolution plotting device"
+	    modes[8]  = "Draw big dots"
+	    modes[9]  = "Connect with lines"
+	    modes[10] = "Draw error bars"
+
+	    local i, x; _1=0; x=PLOT_MODE
+	    p
+	    for (i=0;i<11;i++) {
+		if (modes[i] == "")
+		    continue;
+		bit = 1<<i
+		if (i < 8) {
+		    if (yesno(sprintf("%4d) %s",bit,modes[i]),x&bit))
+			_1 |= bit
+		} else {
+		    if (yesno(sprintf("%4d) %s",bit,modes[i]),!(x&bit)) <= 0)
+			_1 |= bit
+		}
+		if (i == 6 && _1&bit)
+		    getval(\
+		       "      How many points at each end to average", bg_pts)
+		if (i == 7) {
+		    if (!(_1&bit))
+			break;
+		    getsval(\
+		       "      What kind of high-res graphics terminal", GTERM)
+		}
+	    }
+	    printf("      Sum of selections is %d (0x%x).\n", _1,_1)
+	}
+	if (_1&32)
+		_1 &= ~16
+	if (PLOT_MODE&128 && !(_1&128))
+		plot_cntl("kill")
+	PLOT_MODE=_1
+	rdef _plot _1&1? "rplot":""
+	rdef YMIN _1&16? "0":"\"auto\""
+	BG=_1&64? 1:0
+	if (BG == 1)
+		array SCAN_B[4096][2]
+	plot_cntl(_1&8? "xexact":"-xexact")
+	plot_cntl(_1&32? "ylog":"-ylog")
+	plot_cntl(_1&256? "-dots":"dots")
+	plot_cntl(_1&512? "-lines":"lines")
+	plot_cntl(_1&1024? "-ebars":"ebars")
+}'
+
+def plot '
+	if (PLOT_MODE&2) {
+		splot $*
+        }
+        onp;offt
+	if (PLOT_MODE&4) {
+		lp_plot $*
+        }
+	plot_res $*
+	ont;offp
+'
+
+# Original data is in array SCAN_D elements PL_X and PL_Y
+# The background data is put into array SCAN_B and is calculated using:
+#
+# y' = y - (bg_yI + bg_m * x)
+#
+# The constants by_yI and bg_m are calculated
+
+# SCAN_D x y NPTS
+def do_bg(arr,xel,yels,no) '{
+        global BG_OXEL BG_OYELS
+        redo = xel != BG_OXEL || yels != BG_OYELS || array_op("updated?",arr)
+	if (no > 1 && redo) {
+		local n i x0 y0 x1 y1 dx
+		local cols yel ys[]
+		
+		BG_OXEL = xel; BG_OYELS = yels
+                cols = array_op("cols",arr)
+		array SCAN_B[(no > 4096) ? no : 4096][cols]
+		n = bg_pts
+		if (n > no / 2)
+			n = no / 2
+		if (n < 1)
+			n = 1
+                SCAN_B[][xel] = arr[][xel]
+		no_ys = split(yels,ys,",")
+                for (i = 0; i< no_ys; i++) {
+                  y0 = array_op("sum",arr[:n-1][ys[i]]) / n
+		  y1 = array_op("sum",arr[no-n:no-1][ys[i]]) / n
+		  x0 = arr[0][xel]
+		  x1 = arr[no-1][xel] 
+		  dx = x1 - x0;
+		  if (dx != 0) {
+			bg_m = (y1 - y0) / dx;
+			bg_yI = y0 - bg_m * x0;
+		  } else
+			bg_m = bg_yI = 0;
+                  SCAN_B[][ys[i]] = \
+			arr[][ys[i]] - arr[][xel] * bg_m - bg_yI
+                }
+	}
+}'
+
+# Select plot colors.
+# Order is bgnd:win:text:axis:symb1:symb2:symb3:...
+# Colors codes may include (see "colors" help file):
+#        2 blue          9 black
+#        3 red          11 medium aquamarine
+#        4 green        12 blue
+#        5 yellow       16 light blue
+#        7 magenta      47 light gray
+#        8 white        49 khaki
+def def_colors '
+	splot_col="47:49:9:3:2:7:8:9:5:4:2"
+	rplot_col="49:16:9:3:2:7:8:9:5:4:2"
+'
+
+def SHARED_SCAN_D ''
+
+if (unset("splot_col")) {
+	def_colors
+}
+
+# Limit how big SCAN_D will get, in case there are a lot
+# of counters in the config file.
+if (unset("PLOT_CNTRS_MAX")) {
+	PLOT_CNTRS_MAX = 10
+}
+if (!(whatis("SCAN_D") & 0x10000)) {
+	SHARED_SCAN_D array SCAN_D[4096][2]
+}
+if (unset("bg_pts")) {
+	bg_pts = 1
+}
+if (unset("PL_A")) {
+	PL_A = "SCAN_D"
+	PL_X = 0
+	PL_Y = PL_Y1 = 1
+}
+# Must call after assigning PL_Y above and after declaring SCAN_D above
+if (unset("PLOT_MODE")) {
+	setplot 0x483
+	plotselect det
+}
+
+# Do not remove this line -- it keeps the parser from waiting for an "else".
+#++++ install source file:  /home/cert/spec5/current/speclite/dist/macros/start.mac
+#
+#  @(#)start.mac	5.2  04/08/01 CSS
+#
+#  "Spec" Release 5
+#
+#  Copyright (c) 1988,1989,1990,1991,1992,1997,1998,2001
+#  by Certified Scientific Software.
+#  All rights reserved.
+#  Copyrighted as an unpublished work.
+#
+#########################################################################
+
+# Call this macro to initialize some of the macro package globals
+def startup '
+	print "\n\
+Enter <return> for no change in the displayed parameters.\n\
+The names of start-up macros that can be invoked separately\n\
+are shown in parenthesis above a set of queries.\n\
+Type ^C to return to command level without finishing.\n\
+(Interrupting one of the specialized start-up macros will\n\
+likely undo any changes entered for its associated parameters.)"
+	printf("\n(newsample)")
+	newsample
+	{
+	 local t
+	 t = PRINTER != "" && PRINTER != "/dev/null"
+	 if (yesno("\nUsing a dedicated printer for scan output", t)) {
+		PRINTER = getsval("Printer device",PRINTER)
+		if (index(PRINTER,"/")==0)
+			PRINTER = sprintf("/dev/%s",PRINTER)
+		if (open(PRINTER))
+			PRINTER = "/dev/null"
+	 } else
+		PRINTER = "/dev/null"
+	}
+	DO_DIR = getsval("\nCommand file directory",DO_DIR)
+	COUNT = getval("Default count time for ct and uct",COUNT)
+	UPDATE = getval("Update interval for umv, uct, etc. in seconds",UPDATE)
+	if (whatis("starttemp")>>16)
+		printf("\n(starttemp)")
+	starttemp
+	printf("\n(setscans)")
+	setscans
+	printf("\n(setplot)")
+	setplot
+	if (whatis("startgeo")>>16)
+		printf("\n(startgeo)")
+	startgeo
+	if (whatis("g_mo_d")) {
+		printf("\n(setmono)")
+		setmono
+	} else {
+		LAMBDA = getval("\nX-ray wavelength \"LAMBDA\"",LAMBDA)
+	}
+#       printf("\n(setslits)\n")
+#       setslits
+'
+def newsample '
+	TITLE = getsval("\nTitle for scan headers",TITLE)
+	printf("\n(newfile)")
+	newfile
+'
+
+global PRINTER
+
+# Open a null printer
+if (FRESH) {
+	PRINTER = "/dev/null"
+	DATAFILE = "/dev/null"
+	printf("Warning:  No open data file.  Using \"/dev/null\".\n")
+	DO_DIR = "."
+	UPDATE = 0.25
+	TITLE = SPEC
+	printf("Type \"startup\" to initialize data file, etc.\n\n")
+} else
+	printf("Finished standard macros.\n\n")
+
