@@ -23,7 +23,7 @@ syn keyword specStatement       array byte double float long string short ubyte 
 syn keyword specStatement       constant extern global local shared undef unglobal 
 syn keyword specStatement       print eprint p 
 syn keyword specStatement       history lscmd lsdef syms 
-syn keyword specStatement       getcounts memstat move_all move_cnt 
+syn keyword specStatement       getcounts memstat move_all move_cnt mv mvr
 syn keyword specStatement       reconfig savstate sync 
 syn keyword specConditional     else if
 syn keyword specRepeat          for while
